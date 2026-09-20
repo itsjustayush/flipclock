@@ -66,31 +66,50 @@ public class MainActivity extends Activity {
     }
 
     private void setupWebView() {
-        WebSettings settings = mWebView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        mWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        mWebView.addJavascriptInterface(new ApplianceBridge(this), "AndroidAppliance");
+    WebSettings settings = mWebView.getSettings();
 
-        // --- NEW DIAGNOSTIC CODE ---
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            WebView.setWebContentsDebuggingEnabled(true);
-        }
-        mWebView.setWebChromeClient(new android.webkit.WebChromeClient() {
-            @Override
-            public boolean onConsoleMessage(android.webkit.ConsoleMessage consoleMessage) {
-                android.util.Log.d("FlipClockWebView", consoleMessage.message() + " -- " + consoleMessage.sourceId() + ":" + consoleMessage.lineNumber());
-                return true;
-            }
-        });
-        // ---------------------------
+    settings.setJavaScriptEnabled(true);
+    settings.setDomStorageEnabled(true);
+    settings.setDatabaseEnabled(true);
+    settings.setAllowFileAccess(true);
+    settings.setAllowContentAccess(true);
+    settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
-        mWebView.setWebViewClient(new WebViewClient());
-        mWebView.loadUrl("file:///android_asset/www/index.html");
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        WebView.setWebContentsDebuggingEnabled(true);
     }
+
+    mWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+
+    mWebView.addJavascriptInterface(
+            new ApplianceBridge(this),
+            "AndroidAppliance"
+    );
+
+    mWebView.setWebChromeClient(new android.webkit.WebChromeClient() {
+        @Override
+        public boolean onConsoleMessage(
+                android.webkit.ConsoleMessage consoleMessage) {
+
+            android.util.Log.d(
+                    "FlipClockWebView",
+                    consoleMessage.message()
+                            + " -- "
+                            + consoleMessage.sourceId()
+                            + ":"
+                            + consoleMessage.lineNumber()
+            );
+
+            return true;
+        }
+    });
+
+    mWebView.setWebViewClient(new WebViewClient());
+
+    mWebView.loadUrl(
+            "file:///android_asset/www/index.html"
+    );
+}
 
     private void setupImmersiveMode() {
         getWindow().getDecorView().setSystemUiVisibility(
