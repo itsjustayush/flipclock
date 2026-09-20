@@ -261,8 +261,10 @@ html, body {
   height: var(--card-h);
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
-  perspective: 1000px;
-  -webkit-perspective: 1000px;
+  perspective: 1200px;
+  -webkit-perspective: 1200px;
+  perspective-origin: 50% 50%;
+  -webkit-perspective-origin: 50% 50%;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
 }
@@ -297,6 +299,8 @@ html, body {
   background-color: var(--card-bg);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
 }
 
 .card-half.top,
@@ -310,8 +314,8 @@ html, body {
   top: 0;
   bottom: auto;
   border-radius: var(--card-radius) var(--card-radius) 0 0;
-  transform-origin: bottom center;
-  -webkit-transform-origin: bottom center;
+  transform-origin: 50% 100%;
+  -webkit-transform-origin: 50% 100%;
   background-color: var(--card-top-bg);
   overflow: hidden;
   backface-visibility: hidden;
@@ -329,8 +333,8 @@ html, body {
   top: auto;
   bottom: 0;
   border-radius: 0 0 var(--card-radius) var(--card-radius);
-  transform-origin: top center;
-  -webkit-transform-origin: top center;
+  transform-origin: 50% 0%;
+  -webkit-transform-origin: 50% 0%;
   background-color: var(--card-bottom-bg);
   overflow: hidden;
   backface-visibility: hidden;
@@ -352,22 +356,22 @@ html, body {
 
 /* --------------------------------------------------------------------------
    Digit Container & Glyph Alignment (Seamless Center Split)
-   - .top / .card-half.top has overflow: hidden, aligns text to its bottom edge
-   - .bottom / .card-half.bottom has overflow: hidden, aligns text to its top edge
-   - Fixed line-height is strictly equal to full panel height (--card-h)
-   - Zero gap connection at horizontal axle line
+   - .top / .card-half.top has overflow: hidden, aligns full-height digit to top: 0
+   - .bottom / .card-half.bottom has overflow: hidden, aligns full-height digit to top: -100% (-50% of card height)
+   - Absolute-positioned digit text with exact line-height parity strictly equal to var(--card-h)
+   - Perfectly eliminating seam gap, pixel shifting, or misalignments during 3D rotation
    -------------------------------------------------------------------------- */
 .digit-container {
   position: absolute;
   left: 0;
   right: 0;
   width: 100%;
-  height: var(--card-h);
+  height: 100%;
   pointer-events: none;
   display: block;
 }
 
-/* Top half: top half of digit aligns seamlessly with bottom edge of flap */
+/* Top half digit positioning: sits at top 0 within the 50% height top container */
 .card-half.top .digit-container,
 .top .digit-container,
 .card-half.top .digit,
@@ -383,11 +387,16 @@ html, body {
   top: 0;
   bottom: auto;
   margin-top: 0;
+  transform: translateY(0);
 }
 
-/* Bottom half: bottom half of digit aligns seamlessly with top edge of flap */
+/* Bottom half digit positioning: shifted up by exactly half card height so lower half of glyph appears seamlessly */
 .card-half.bottom .digit-container,
-.bottom .digit-container,
+.bottom .digit-container {
+  top: 0;
+  bottom: auto;
+}
+
 .card-half.bottom .digit,
 .bottom .digit,
 .card-half.bottom .digit-glyph,
@@ -398,9 +407,10 @@ html, body {
 #minutes-bottom-flap .digit,
 #seconds-bottom-static .digit,
 #seconds-bottom-flap .digit {
-  top: auto;
-  bottom: 0;
+  top: -100%;
+  bottom: auto;
   margin-top: 0;
+  transform: translateY(0);
 }
 
 .digit,
@@ -408,10 +418,13 @@ html, body {
   position: absolute;
   left: 0;
   right: 0;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  height: var(--card-h);
-  line-height: var(--card-h);
+  height: calc(var(--card-h) - 0.5px);
+  min-height: calc(var(--card-h) - 0.5px);
+  line-height: calc(var(--card-h) - 0.5px);
   font-family: var(--clock-font);
   font-size: var(--digit-size);
   font-weight: 800;
@@ -423,6 +436,7 @@ html, body {
   overflow: hidden;
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
 /* --------------------------------------------------------------------------
@@ -478,8 +492,8 @@ html, body {
 #hours-top-flap,
 #minutes-top-flap,
 #seconds-top-flap {
-  transform-origin: bottom center !important;
-  -webkit-transform-origin: bottom center !important;
+  transform-origin: 50% 100% !important;
+  -webkit-transform-origin: 50% 100% !important;
   transform: translate3d(0, 0, 0) rotateX(0deg);
   -webkit-transform: translate3d(0, 0, 0) rotateX(0deg);
   backface-visibility: hidden !important;
@@ -493,8 +507,8 @@ html, body {
 #hours-bottom-flap,
 #minutes-bottom-flap,
 #seconds-bottom-flap {
-  transform-origin: top center !important;
-  -webkit-transform-origin: top center !important;
+  transform-origin: 50% 0% !important;
+  -webkit-transform-origin: 50% 0% !important;
   transform: translate3d(0, 0, 0) rotateX(90deg);
   -webkit-transform: translate3d(0, 0, 0) rotateX(90deg);
   backface-visibility: hidden !important;
@@ -1866,4 +1880,538 @@ button:active,
     --card-h: clamp(130px, 24vh, 250px);
     --digit-size: clamp(90px, 17vh, 180px);
   }
+}
+
+/* ==========================================================================
+   AMBIENT INFORMATION LAYER (Rotating Info Banner)
+   ========================================================================== */
+.ambient-info-bar {
+  position: absolute;
+  top: clamp(12px, 2.5vh, 24px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease;
+}
+
+.ambient-info-bar.hidden {
+  display: none;
+  opacity: 0;
+}
+
+.ambient-info-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(18, 18, 18, 0.75);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font-size: clamp(0.75rem, 1.3vw, 0.85rem);
+  font-weight: 500;
+  color: var(--text-color);
+  letter-spacing: 0.04em;
+  transition: all 0.3s ease;
+}
+
+.ambient-info-icon {
+  font-size: 0.95rem;
+}
+
+/* ==========================================================================
+   DESK MODE (Clean minimal view, hides distracting UI until screen touched)
+   ========================================================================== */
+.app-root.desk-mode .bottom-bar,
+.app-root.desk-mode .battery-corner,
+.app-root.desk-mode .date-container {
+  opacity: 0.15;
+  transition: opacity 0.4s ease;
+}
+
+.app-root.desk-mode:hover .bottom-bar,
+.app-root.desk-mode:hover .battery-corner,
+.app-root.desk-mode:hover .date-container,
+.app-root.desk-mode.interacted .bottom-bar,
+.app-root.desk-mode.interacted .battery-corner,
+.app-root.desk-mode.interacted .date-container {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   NIGHT MONOCHROME THEMES & BRIGHTNESS PROFILES
+   ========================================================================== */
+/* Red Monochrome (zero blue-light sleep preservation) */
+body[data-theme="night-red"] {
+  --bg-color: #050000;
+  --card-bg: #0d0000;
+  --card-border: rgba(220, 38, 38, 0.25);
+  --text-color: #ef4444;
+  --text-muted: #991b1b;
+  --accent-color: #dc2626;
+  --axle-color: rgba(220, 38, 38, 0.3);
+  --shadow-color: rgba(220, 38, 38, 0.15);
+}
+
+/* Amber Monochrome */
+body[data-theme="night-amber"] {
+  --bg-color: #060300;
+  --card-bg: #100800;
+  --card-border: rgba(217, 119, 6, 0.25);
+  --text-color: #f59e0b;
+  --text-muted: #b45309;
+  --accent-color: #d97706;
+  --axle-color: rgba(217, 119, 6, 0.3);
+  --shadow-color: rgba(217, 119, 6, 0.15);
+}
+
+/* Brightness Profile presets applied via class on app-root */
+.app-root.brightness-day {
+  filter: brightness(1);
+}
+.app-root.brightness-evening {
+  filter: brightness(0.62) contrast(0.98);
+}
+.app-root.brightness-night {
+  filter: brightness(0.3) contrast(0.95);
+}
+.app-root.brightness-ambient {
+  filter: brightness(0.12) contrast(0.9);
+}
+
+/* One-Tap Night Mode Active Glow on bottom bar button */
+.nav-btn.night-active {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* ==========================================================================
+   MULTI-FACE ARCHITECTURE RENDERING
+   ========================================================================== */
+/* Face 2: Minimal Digital */
+.app-root[data-face="minimal"] .hinge-axis-line {
+  display: none;
+}
+.app-root[data-face="minimal"] .flip-card {
+  box-shadow: none;
+  background: transparent !important;
+  border: none !important;
+}
+.app-root[data-face="minimal"] .slit-line,
+.app-root[data-face="minimal"] .flap-shadow,
+.app-root[data-face="minimal"] .card-half.flap {
+  display: none !important;
+}
+.app-root[data-face="minimal"] .card-half.static {
+  box-shadow: none !important;
+  background: transparent !important;
+  border: none !important;
+}
+.app-root[data-face="minimal"] .digit-glyph {
+  font-family: 'DM Mono', monospace !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.04em;
+  opacity: 0.95;
+}
+
+/* Face 3: Seven-Segment VFD / LED */
+.app-root[data-face="seven-segment"] .hinge-axis-line {
+  display: none;
+}
+.app-root[data-face="seven-segment"] .flip-card {
+  background: #080808 !important;
+  border: 2px solid #1a1a1a !important;
+  border-radius: 12px;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.9), 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+.app-root[data-face="seven-segment"] .slit-line,
+.app-root[data-face="seven-segment"] .card-half.flap {
+  display: none !important;
+}
+.app-root[data-face="seven-segment"] .digit-glyph {
+  font-family: 'VT323', monospace !important;
+  font-size: calc(var(--digit-size) * 1.25) !important;
+  color: var(--accent-color, #22c55e) !important;
+  text-shadow: 0 0 16px var(--accent-color, #22c55e), 0 0 32px var(--accent-color, #22c55e);
+  letter-spacing: 0.05em;
+}
+
+/* Face 4: Huge Typography (Editorial) */
+.app-root[data-face="huge-typography"] .hinge-axis-line {
+  display: none;
+}
+.app-root[data-face="huge-typography"] .flip-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.app-root[data-face="huge-typography"] .slit-line,
+.app-root[data-face="huge-typography"] .card-half.flap {
+  display: none !important;
+}
+.app-root[data-face="huge-typography"] .digit-glyph {
+  font-family: 'Playfair Display', serif !important;
+  font-size: calc(var(--digit-size) * 1.3) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.05em;
+  color: var(--text-color) !important;
+}
+
+/* Face 5: Dot-Matrix */
+.app-root[data-face="dot-matrix"] .hinge-axis-line {
+  display: none;
+}
+.app-root[data-face="dot-matrix"] .flip-card {
+  background: #0a0a0c !important;
+  border: 1px solid #222 !important;
+  background-image: radial-gradient(#1e293b 1px, transparent 1px) !important;
+  background-size: 8px 8px !important;
+}
+.app-root[data-face="dot-matrix"] .slit-line,
+.app-root[data-face="dot-matrix"] .card-half.flap {
+  display: none !important;
+}
+.app-root[data-face="dot-matrix"] .digit-glyph {
+  font-family: 'Space Mono', monospace !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em;
+  color: var(--text-color) !important;
+}
+
+/* Face 6: Airport Split-Flap Board */
+.app-root[data-face="split-flap"] .flip-card {
+  border-radius: 4px;
+  background: #111 !important;
+  border: 2px solid #282828 !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+}
+.app-root[data-face="split-flap"] .digit-glyph {
+  font-family: 'Anton', sans-serif !important;
+  letter-spacing: 0.08em;
+  color: #f3f4f6 !important;
+}
+
+/* Face 7: Desk Clock Style */
+.app-root[data-face="desk-clock"] .flip-card {
+  border-radius: 20px;
+  background: linear-gradient(180deg, #222226 0%, #151518 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.app-root[data-face="desk-clock"] .digit-glyph {
+  font-family: 'Oswald', sans-serif !important;
+  font-weight: 700;
+}
+
+/* Face 8: Analog Quartz Dial */
+.analog-clock-container {
+  display: none;
+  position: relative;
+  width: clamp(260px, 45vmin, 500px);
+  height: clamp(260px, 45vmin, 500px);
+  border-radius: 50%;
+  background: radial-gradient(circle, #1a1a1f 0%, #0d0d10 100%);
+  border: 8px solid #2a2a32;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 4px 16px rgba(0, 0, 0, 0.6);
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+}
+
+.app-root[data-face="analog"] .clock-stage > .flip-card,
+.app-root[data-face="analog"] .hinge-axis-line {
+  display: none !important;
+}
+
+.app-root[data-face="analog"] .analog-clock-container {
+  display: flex !important;
+}
+
+.analog-face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.analog-mark {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 3px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.35);
+  transform-origin: 50% calc(clamp(130px, 22.5vmin, 250px) - 8px);
+}
+.analog-mark.major {
+  width: 5px;
+  height: 20px;
+  background: #fff;
+}
+
+.analog-hand {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  transform-origin: 50% 100%;
+  border-radius: 999px;
+  transition: transform 0.05s cubic-bezier(0.4, 2.08, 0.55, 0.44);
+}
+.analog-hand.hour {
+  width: 7px;
+  height: 28%;
+  margin-left: -3.5px;
+  background: #f3f4f6;
+  z-index: 3;
+}
+.analog-hand.minute {
+  width: 4px;
+  height: 40%;
+  margin-left: -2px;
+  background: #e5e7eb;
+  z-index: 4;
+}
+.analog-hand.second {
+  width: 2px;
+  height: 44%;
+  margin-left: -1px;
+  background: var(--accent-color, #ef4444);
+  z-index: 5;
+}
+.analog-center-cap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-color, #ef4444);
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* ==========================================================================
+   TIME TOOLS MODAL (Timer Presets, Stopwatch Laps, Pomodoro)
+   ========================================================================== */
+.segmented-control {
+  display: flex;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 4px;
+  border-radius: 10px;
+  margin: 12px 18px 0 18px;
+  gap: 4px;
+}
+
+.segment-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.segment-btn.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.tool-panel {
+  display: block;
+}
+.tool-panel.hidden {
+  display: none !important;
+}
+
+/* Timer Presets */
+.timer-dial-wrapper {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.timer-countdown-display,
+.pomodoro-display {
+  font-family: 'Space Mono', monospace;
+  font-size: clamp(2.4rem, 6vw, 3.5rem);
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.timer-progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.timer-progress-bar {
+  height: 100%;
+  background: var(--accent-color, #3b82f6);
+  border-radius: 999px;
+  transition: width 0.3s linear;
+}
+.timer-progress-bar.pomo {
+  background: #ef4444;
+}
+
+.timer-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.preset-chip {
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preset-chip:hover,
+.preset-chip.active {
+  background: var(--accent-color, #3b82f6);
+  color: #fff;
+  border-color: transparent;
+}
+
+.custom-timer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.custom-num-input {
+  width: 80px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Stopwatch Laps */
+.stopwatch-laps-list {
+  max-height: 140px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  margin-top: 8px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.stopwatch-lap-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.stopwatch-lap-item:last-child {
+  border-bottom: none;
+}
+
+/* Pomodoro */
+.pomodoro-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pomodoro-phase-badge {
+  padding: 4px 12px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pomodoro-phase-badge.break {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.pomo-cycle-text {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.pomodoro-preset-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ==========================================================================
+   CLOCK LAB & DIAGNOSTICS
+   ========================================================================== */
+.lab-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.lab-metric-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.lab-metric-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.lab-metric-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 2px;
+  font-family: 'Space Mono', monospace;
+}
+
+.lab-metric-sub {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+
+.lab-test-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }

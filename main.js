@@ -11,7 +11,12 @@ const STORAGE_KEY = 'flip_clock_preferences_v3';
 
 const defaultState = {
   theme: 'dark-charcoal',
-  clockFont: 'bebas-neue', // 'bebas-neue' | 'oswald' | 'space-mono' | 'anton' | 'system'
+  clockFace: 'flip', // 'flip' | 'minimal' | 'seven-segment' | 'huge-typography' | 'dot-matrix' | 'analog' | 'split-flap' | 'desk-clock'
+  brightnessProfile: 'day', // 'day' | 'evening' | 'night' | 'ambient'
+  burnInProtection: true,
+  ambientInfoLayer: true,
+  deskMode: false,
+  clockFont: 'bebas-neue', // 'bebas-neue' | 'oswald' | 'space-mono' | 'anton' | 'vt323' | 'dm-mono' | 'courier-prime' | 'playfair' | 'system'
   customColors: {
     cardBg: '#161616',
     textColor: '#e5e5e5',
@@ -39,8 +44,8 @@ const defaultState = {
   snoozeUntil: null,
   snoozeAlarmId: null,
   alarms: [
-    { id: 'alarm-1', time: '07:00', label: 'Morning Wakeup', enabled: false, sound: 'classic-beep' },
-    { id: 'alarm-2', time: '08:30', label: 'Work / Study', enabled: false, sound: 'zen-bell' }
+    { id: 'alarm-1', time: '07:00', label: 'Morning Wakeup', enabled: false, sound: 'classic-beep', repeat: 'daily', gradual: true },
+    { id: 'alarm-2', time: '08:30', label: 'Work / Study', enabled: false, sound: 'zen-bell', repeat: 'weekdays', gradual: true }
   ]
 };
 
@@ -60,7 +65,9 @@ function loadState() {
           time: parsed.alarm.time,
           label: 'Morning Alarm',
           enabled: Boolean(parsed.alarm.enabled),
-          sound: parsed.alarm.sound || 'classic-beep'
+          sound: parsed.alarm.sound || 'classic-beep',
+          repeat: 'daily',
+          gradual: true
         });
       }
       if (alarmsList.length === 0) {
@@ -70,6 +77,11 @@ function loadState() {
       state = {
         ...defaultState,
         ...parsed,
+        clockFace: parsed.clockFace || 'flip',
+        brightnessProfile: parsed.brightnessProfile || 'day',
+        burnInProtection: parsed.burnInProtection !== undefined ? Boolean(parsed.burnInProtection) : true,
+        ambientInfoLayer: parsed.ambientInfoLayer !== undefined ? Boolean(parsed.ambientInfoLayer) : true,
+        deskMode: Boolean(parsed.deskMode),
         customColors: { ...defaultState.customColors, ...(parsed.customColors || {}) },
         autoDim: { ...defaultState.autoDim, ...(parsed.autoDim || {}) },
         alarms: alarmsList,
@@ -387,7 +399,22 @@ const timerCloseBtn = document.getElementById('timer-close-btn');
 const btnAlarm = document.getElementById('btn-alarm');
 const btnTimer = document.getElementById('btn-timer');
 const btnClock = document.getElementById('btn-clock');
+const btnNightToggle = document.getElementById('btn-night-toggle');
+const btnClockLab = document.getElementById('btn-clock-lab');
 const btnSettings = document.getElementById('btn-settings');
+
+// Clock Lab Modal
+const clockLabBackdrop = document.getElementById('clock-lab-backdrop');
+const clockLabCloseBtn = document.getElementById('clock-lab-close-btn');
+
+// Analog Clock Hands
+const analogHourHand = document.getElementById('analog-hour-hand');
+const analogMinuteHand = document.getElementById('analog-minute-hand');
+const analogSecondHand = document.getElementById('analog-second-hand');
+
+// Ambient Info Layer
+const ambientInfoBar = document.getElementById('ambient-info-bar');
+const ambientInfoText = document.getElementById('ambient-info-text');
 
 // Settings Inputs
 const themeOptions = document.querySelectorAll('.theme-option');
@@ -396,6 +423,10 @@ const pickerTextColor = document.getElementById('picker-text-color');
 const pickerBgColor = document.getElementById('picker-bg-color');
 const pickerSplitColor = document.getElementById('picker-split-color');
 const btnResetCustomColors = document.getElementById('btn-reset-custom-colors');
+const selectClockFace = document.getElementById('select-clock-face');
+const selectBrightnessProfile = document.getElementById('select-brightness-profile');
+const toggleBurnIn = document.getElementById('toggle-burnin');
+const toggleAmbientInfo = document.getElementById('toggle-ambient-info');
 const selectClockFont = document.getElementById('select-clock-font');
 
 const toggleDate = document.getElementById('toggle-date');
@@ -601,6 +632,17 @@ function getFormattedTime() {
 function updateClock() {
   const time = getFormattedTime();
 
+  // If analog clock face is active, update mechanical hands
+  if (state.clockFace === 'analog') {
+    const s = time.rawSeconds + (time.nowObj.getMilliseconds() / 1000);
+    const m = time.rawMinutes + (s / 60);
+    const h = (time.rawHours % 12) + (m / 60);
+
+    if (analogSecondHand) analogSecondHand.style.transform = `translateX(-50%) rotate(${s * 6}deg)`;
+    if (analogMinuteHand) analogMinuteHand.style.transform = `translateX(-50%) rotate(${m * 6}deg)`;
+    if (analogHourHand) analogHourHand.style.transform = `translateX(-50%) rotate(${h * 30}deg)`;
+  }
+
   if (!isInitialized) {
     setCardDirect(hoursCard, time.hours);
     setCardDirect(minutesCard, time.minutes);
@@ -646,6 +688,33 @@ function updateAmPmBadge(ampm) {
 }
 
 // -----------------------------------------------------------------------------
+// Stopwatch State (Shared with Dynamic Island & Time Tools)
+// -----------------------------------------------------------------------------
+let stopwatchRunning = false;
+let stopwatchStartTime = 0;
+let stopwatchAccumulated = 0;
+let stopwatchTimer = null;
+let stopwatchLaps = [];
+
+function formatStopwatchTime(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const centiseconds = Math.floor((ms % 1000) / 10);
+
+  const mStr = minutes < 10 ? '0' + minutes : minutes;
+  const sStr = seconds < 10 ? '0' + seconds : seconds;
+  const cStr = centiseconds < 10 ? '0' + centiseconds : centiseconds;
+  return `${mStr}:${sStr}.${cStr}`;
+}
+
+function getStopwatchCurrentMs() {
+  return stopwatchRunning
+    ? (performance.now() - stopwatchStartTime + stopwatchAccumulated)
+    : stopwatchAccumulated;
+}
+
+// -----------------------------------------------------------------------------
 // Dynamic Island Floating Status Bar Engine
 // -----------------------------------------------------------------------------
 let dynamicIslandActionType = null; // 'timer' | 'alarm' | 'snooze'
@@ -678,12 +747,12 @@ function updateDynamicIsland() {
   }
 
   // Case 3: Stopwatch Active or Paused with Time
-  if (stopwatchRunning || stopwatchElapsed > 0) {
+  const swCurrentMs = getStopwatchCurrentMs();
+  if (stopwatchRunning || swCurrentMs > 0) {
     dynamicIsland.classList.remove('collapsed');
     islandIcon.textContent = '⏱️';
     islandTitle.textContent = stopwatchRunning ? 'Stopwatch' : 'Paused';
-    const currentMs = stopwatchRunning ? (Date.now() - stopwatchStart + stopwatchElapsed) : stopwatchElapsed;
-    islandStatus.textContent = formatStopwatchTime(currentMs);
+    islandStatus.textContent = formatStopwatchTime(swCurrentMs);
     islandAction.textContent = 'View';
     dynamicIslandActionType = 'timer';
     return;
@@ -1141,27 +1210,146 @@ if (btnRequestNotif) {
 }
 
 // -----------------------------------------------------------------------------
-// Stopwatch / Timer Logic
+// TIME TOOLS ENGINE: Timer Presets, Stopwatch Laps, and Focus / Pomodoro
 // -----------------------------------------------------------------------------
-let stopwatchRunning = false;
-let stopwatchStart = 0;
-let stopwatchElapsed = 0;
-let stopwatchTimer = null;
 
-function formatStopwatchTime(ms) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  const tenths = Math.floor((ms % 1000) / 100);
+// Tool Tabs Switching
+const segmentBtns = document.querySelectorAll('.segment-btn');
+const panelTimer = document.getElementById('panel-timer');
+const panelStopwatch = document.getElementById('panel-stopwatch');
+const panelPomodoro = document.getElementById('panel-pomodoro');
 
-  const mStr = minutes < 10 ? '0' + minutes : minutes;
-  const sStr = seconds < 10 ? '0' + seconds : seconds;
-  return `${mStr}:${sStr}.${tenths}`;
+segmentBtns.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    segmentBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    hapticService.click();
+
+    const tool = btn.dataset.tool;
+    if (panelTimer) panelTimer.classList.toggle('hidden', tool !== 'timer');
+    if (panelStopwatch) panelStopwatch.classList.toggle('hidden', tool !== 'stopwatch');
+    if (panelPomodoro) panelPomodoro.classList.toggle('hidden', tool !== 'pomodoro');
+  });
+});
+
+// 1. TIMER PRESETS ENGINE
+let timerTotalSeconds = 300;
+let timerRemainingSeconds = 300;
+let timerInterval = null;
+let timerRunning = false;
+
+const timerDisplay = document.getElementById('timer-display');
+const timerProgressBar = document.getElementById('timer-progress-bar');
+const timerStartBtn = document.getElementById('timer-start-btn');
+const timerResetBtn = document.getElementById('timer-reset-btn');
+const timerPresetChips = document.querySelectorAll('#panel-timer .preset-chip');
+const customTimerMinInput = document.getElementById('custom-timer-min');
+const btnSetCustomTimer = document.getElementById('btn-set-custom-timer');
+
+function formatTimerSeconds(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
 }
 
+function updateTimerUI() {
+  if (timerDisplay) timerDisplay.textContent = formatTimerSeconds(timerRemainingSeconds);
+  if (timerProgressBar) {
+    const pct = timerTotalSeconds > 0 ? (timerRemainingSeconds / timerTotalSeconds) * 100 : 0;
+    timerProgressBar.style.width = `${pct}%`;
+  }
+}
+
+function setTimerDuration(seconds) {
+  timerTotalSeconds = seconds;
+  timerRemainingSeconds = seconds;
+  if (timerRunning) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    if (timerStartBtn) {
+      timerStartBtn.textContent = 'Start Timer';
+      timerStartBtn.classList.add('primary');
+    }
+  }
+  updateTimerUI();
+}
+
+timerPresetChips.forEach((chip) => {
+  chip.addEventListener('click', () => {
+    timerPresetChips.forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    hapticService.click();
+    const secs = Number(chip.dataset.seconds);
+    setTimerDuration(secs);
+  });
+});
+
+if (btnSetCustomTimer && customTimerMinInput) {
+  btnSetCustomTimer.addEventListener('click', () => {
+    hapticService.click();
+    const mins = Math.max(1, Math.min(180, Number(customTimerMinInput.value) || 1));
+    timerPresetChips.forEach(c => c.classList.remove('active'));
+    setTimerDuration(mins * 60);
+  });
+}
+
+if (timerStartBtn) {
+  timerStartBtn.addEventListener('click', () => {
+    initAudio();
+    if (!timerRunning) {
+      timerRunning = true;
+      timerStartBtn.textContent = 'Pause';
+      timerStartBtn.classList.remove('primary');
+      hapticService.click();
+
+      timerInterval = setInterval(() => {
+        if (timerRemainingSeconds > 0) {
+          timerRemainingSeconds--;
+          updateTimerUI();
+        } else {
+          // Timer finished
+          clearInterval(timerInterval);
+          timerRunning = false;
+          timerStartBtn.textContent = 'Start Timer';
+          timerStartBtn.classList.add('primary');
+          hapticService.snooze();
+          playAlarmSoundPattern('marimba-chime');
+          if (ambientInfoText) ambientInfoText.textContent = 'Timer Expired!';
+        }
+      }, 1000);
+    } else {
+      timerRunning = false;
+      clearInterval(timerInterval);
+      timerStartBtn.textContent = 'Resume';
+      timerStartBtn.classList.add('primary');
+      hapticService.click();
+    }
+  });
+}
+
+if (timerResetBtn) {
+  timerResetBtn.addEventListener('click', () => {
+    hapticService.click();
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerRemainingSeconds = timerTotalSeconds;
+    if (timerStartBtn) {
+      timerStartBtn.textContent = 'Start Timer';
+      timerStartBtn.classList.add('primary');
+    }
+    updateTimerUI();
+  });
+}
+
+// 2. STOPWATCH WITH HIGH-PRECISION PERFORMANCE.NOW() AND LAPS
+const stopwatchLapBtn = document.getElementById('stopwatch-lap-btn');
+const stopwatchLapsList = document.getElementById('stopwatch-laps-list');
+const lapsCount = document.getElementById('laps-count');
+const btnClearLaps = document.getElementById('btn-clear-laps');
+
 function updateStopwatch() {
-  const current = Date.now() - stopwatchStart + stopwatchElapsed;
-  stopwatchDisplay.textContent = formatStopwatchTime(current);
+  const current = getStopwatchCurrentMs();
+  if (stopwatchDisplay) stopwatchDisplay.textContent = formatStopwatchTime(current);
   if (dynamicIslandActionType === 'timer' && islandStatus) {
     islandStatus.textContent = formatStopwatchTime(current);
   }
@@ -1172,30 +1360,218 @@ if (stopwatchStartBtn) {
     initAudio();
     if (!stopwatchRunning) {
       stopwatchRunning = true;
-      stopwatchStart = Date.now();
-      stopwatchTimer = setInterval(updateStopwatch, 50);
+      stopwatchStartTime = performance.now();
+      stopwatchTimer = setInterval(updateStopwatch, 30);
       stopwatchStartBtn.textContent = 'Pause';
       stopwatchStartBtn.style.backgroundColor = '#f59e0b';
+      if (stopwatchLapBtn) stopwatchLapBtn.disabled = false;
     } else {
       stopwatchRunning = false;
-      stopwatchElapsed += Date.now() - stopwatchStart;
+      stopwatchAccumulated += performance.now() - stopwatchStartTime;
       clearInterval(stopwatchTimer);
       stopwatchStartBtn.textContent = 'Resume';
       stopwatchStartBtn.style.backgroundColor = '#2563eb';
     }
+    hapticService.click();
     updateDynamicIsland();
+  });
+}
+
+if (stopwatchLapBtn) {
+  stopwatchLapBtn.addEventListener('click', () => {
+    if (!stopwatchRunning) return;
+    hapticService.tick();
+    const currentMs = performance.now() - stopwatchStartTime + stopwatchAccumulated;
+    stopwatchLaps.unshift(currentMs);
+    renderStopwatchLaps();
   });
 }
 
 if (stopwatchResetBtn) {
   stopwatchResetBtn.addEventListener('click', () => {
+    hapticService.click();
     stopwatchRunning = false;
     clearInterval(stopwatchTimer);
-    stopwatchElapsed = 0;
-    stopwatchDisplay.textContent = '00:00.0';
-    stopwatchStartBtn.textContent = 'Start';
-    stopwatchStartBtn.style.backgroundColor = '#2563eb';
+    stopwatchAccumulated = 0;
+    if (stopwatchDisplay) stopwatchDisplay.textContent = '00:00.00';
+    if (stopwatchStartBtn) {
+      stopwatchStartBtn.textContent = 'Start';
+      stopwatchStartBtn.style.backgroundColor = '#2563eb';
+    }
+    if (stopwatchLapBtn) stopwatchLapBtn.disabled = true;
     updateDynamicIsland();
+  });
+}
+
+if (btnClearLaps) {
+  btnClearLaps.addEventListener('click', () => {
+    hapticService.delete();
+    stopwatchLaps = [];
+    renderStopwatchLaps();
+  });
+}
+
+function renderStopwatchLaps() {
+  if (!stopwatchLapsList) return;
+  if (lapsCount) lapsCount.textContent = stopwatchLaps.length.toString();
+  stopwatchLapsList.innerHTML = '';
+  stopwatchLaps.forEach((lapMs, idx) => {
+    const lapNumber = stopwatchLaps.length - idx;
+    const row = document.createElement('div');
+    row.className = 'stopwatch-lap-item';
+    row.innerHTML = `<span>Lap ${lapNumber}</span><span style="font-family:'Space Mono',monospace;">${formatStopwatchTime(lapMs)}</span>`;
+    stopwatchLapsList.appendChild(row);
+  });
+}
+
+// 3. FOCUS / POMODORO MODE
+let pomoPhase = 'work'; // 'work' | 'break'
+let pomoWorkDuration = 25 * 60;
+let pomoBreakDuration = 5 * 60;
+let pomoRemaining = 25 * 60;
+let pomoCycle = 1;
+let pomoRunning = false;
+let pomoTimer = null;
+
+const pomoDisplay = document.getElementById('pomo-display');
+const pomoProgressBar = document.getElementById('pomo-progress-bar');
+const pomoPhaseBadge = document.getElementById('pomo-phase-badge');
+const pomoCycleText = document.getElementById('pomo-cycle-text');
+const pomoStartBtn = document.getElementById('pomo-start-btn');
+const pomoSkipBtn = document.getElementById('pomo-skip-btn');
+const pomoResetBtn = document.getElementById('pomo-reset-btn');
+const pomoPresetButtons = document.querySelectorAll('#panel-pomodoro .preset-chip');
+const customPomoInputs = document.getElementById('custom-pomo-inputs');
+const customPomoWork = document.getElementById('custom-pomo-work');
+const customPomoBreak = document.getElementById('custom-pomo-break');
+const btnApplyCustomPomo = document.getElementById('btn-apply-custom-pomo');
+
+function updatePomoUI() {
+  if (pomoDisplay) pomoDisplay.textContent = formatTimerSeconds(pomoRemaining);
+  if (pomoPhaseBadge) {
+    pomoPhaseBadge.textContent = pomoPhase === 'work' ? 'Focus Work' : 'Rest Break';
+    pomoPhaseBadge.classList.toggle('break', pomoPhase === 'break');
+  }
+  if (pomoCycleText) pomoCycleText.textContent = `Cycle ${pomoCycle} of 4`;
+  if (pomoProgressBar) {
+    const total = pomoPhase === 'work' ? pomoWorkDuration : pomoBreakDuration;
+    const pct = total > 0 ? (pomoRemaining / total) * 100 : 0;
+    pomoProgressBar.style.width = `${pct}%`;
+  }
+}
+
+pomoPresetButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    pomoPresetButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    hapticService.click();
+
+    const mode = btn.dataset.pomo;
+    if (mode === 'custom') {
+      if (customPomoInputs) customPomoInputs.classList.remove('hidden');
+    } else {
+      if (customPomoInputs) customPomoInputs.classList.add('hidden');
+      if (mode === '25-5') {
+        pomoWorkDuration = 25 * 60;
+        pomoBreakDuration = 5 * 60;
+      } else if (mode === '50-10') {
+        pomoWorkDuration = 50 * 60;
+        pomoBreakDuration = 10 * 60;
+      } else if (mode === '90-15') {
+        pomoWorkDuration = 90 * 60;
+        pomoBreakDuration = 15 * 60;
+      }
+      pomoPhase = 'work';
+      pomoRemaining = pomoWorkDuration;
+      if (pomoRunning) {
+        clearInterval(pomoTimer);
+        pomoRunning = false;
+        if (pomoStartBtn) pomoStartBtn.textContent = 'Start Focus';
+      }
+      updatePomoUI();
+    }
+  });
+});
+
+if (btnApplyCustomPomo && customPomoWork && customPomoBreak) {
+  btnApplyCustomPomo.addEventListener('click', () => {
+    hapticService.click();
+    const w = Math.max(5, Math.min(120, Number(customPomoWork.value) || 25));
+    const b = Math.max(1, Math.min(60, Number(customPomoBreak.value) || 5));
+    pomoWorkDuration = w * 60;
+    pomoBreakDuration = b * 60;
+    pomoPhase = 'work';
+    pomoRemaining = pomoWorkDuration;
+    if (pomoRunning) {
+      clearInterval(pomoTimer);
+      pomoRunning = false;
+      if (pomoStartBtn) pomoStartBtn.textContent = 'Start Focus';
+    }
+    updatePomoUI();
+  });
+}
+
+if (pomoStartBtn) {
+  pomoStartBtn.addEventListener('click', () => {
+    initAudio();
+    if (!pomoRunning) {
+      pomoRunning = true;
+      pomoStartBtn.textContent = 'Pause';
+      hapticService.click();
+
+      pomoTimer = setInterval(() => {
+        if (pomoRemaining > 0) {
+          pomoRemaining--;
+          updatePomoUI();
+        } else {
+          // Switch Phase
+          hapticService.snooze();
+          playAlarmSoundPattern('zen-bell');
+          if (pomoPhase === 'work') {
+            pomoPhase = 'break';
+            pomoRemaining = pomoBreakDuration;
+          } else {
+            pomoPhase = 'work';
+            pomoRemaining = pomoWorkDuration;
+            pomoCycle = pomoCycle >= 4 ? 1 : pomoCycle + 1;
+          }
+          updatePomoUI();
+        }
+      }, 1000);
+    } else {
+      pomoRunning = false;
+      clearInterval(pomoTimer);
+      pomoStartBtn.textContent = 'Resume';
+      hapticService.click();
+    }
+  });
+}
+
+if (pomoSkipBtn) {
+  pomoSkipBtn.addEventListener('click', () => {
+    hapticService.tick();
+    if (pomoPhase === 'work') {
+      pomoPhase = 'break';
+      pomoRemaining = pomoBreakDuration;
+    } else {
+      pomoPhase = 'work';
+      pomoRemaining = pomoWorkDuration;
+      pomoCycle = pomoCycle >= 4 ? 1 : pomoCycle + 1;
+    }
+    updatePomoUI();
+  });
+}
+
+if (pomoResetBtn) {
+  pomoResetBtn.addEventListener('click', () => {
+    hapticService.click();
+    clearInterval(pomoTimer);
+    pomoRunning = false;
+    pomoPhase = 'work';
+    pomoRemaining = pomoWorkDuration;
+    pomoCycle = 1;
+    if (pomoStartBtn) pomoStartBtn.textContent = 'Start Focus';
+    updatePomoUI();
   });
 }
 
@@ -1508,6 +1884,25 @@ function applySettings() {
   selectFlipSpeed.value = state.flipSpeed;
   document.documentElement.style.setProperty('--flip-duration', state.flipSpeed);
 
+  // Clock Face Setting
+  if (selectClockFace) selectClockFace.value = state.clockFace || 'flip';
+  if (appRoot) {
+    appRoot.dataset.face = state.clockFace || 'flip';
+    appRoot.classList.toggle('desk-mode', Boolean(state.deskMode));
+  }
+
+  // Brightness Profile Setting
+  if (selectBrightnessProfile) selectBrightnessProfile.value = state.brightnessProfile || 'day';
+  applyBrightnessProfile(state.brightnessProfile || 'day');
+
+  // Burn-In Pixel Shifting
+  if (toggleBurnIn) toggleBurnIn.checked = state.burnInProtection !== false;
+  setupBurnInProtection();
+
+  // Ambient Information Layer
+  if (toggleAmbientInfo) toggleAmbientInfo.checked = state.ambientInfoLayer !== false;
+  updateAmbientInfoBanner();
+
   // Clock Font Setting
   applyClockFont(state.clockFont || 'bebas-neue');
 
@@ -1733,6 +2128,252 @@ selectFlipSpeed.addEventListener('change', (e) => {
   saveState();
 });
 
+// Clock Face Switching
+if (selectClockFace) {
+  selectClockFace.addEventListener('change', (e) => {
+    state.clockFace = e.target.value;
+    if (appRoot) appRoot.dataset.face = state.clockFace;
+    hapticService.click();
+    saveState();
+    isInitialized = false;
+    updateClock();
+  });
+}
+
+// Screen Brightness Profiles
+function applyBrightnessProfile(profile) {
+  state.brightnessProfile = profile;
+  if (appRoot) appRoot.dataset.profile = profile;
+
+  let dimPct = 0;
+  if (profile === 'evening') dimPct = 40;
+  else if (profile === 'night') dimPct = 75;
+  else if (profile === 'ambient') dimPct = 92;
+
+  // Apply visual dimming via dimmer overlay
+  if (dimmerOverlay) {
+    dimmerOverlay.style.opacity = (dimPct / 100).toString();
+  }
+}
+
+if (selectBrightnessProfile) {
+  selectBrightnessProfile.addEventListener('change', (e) => {
+    applyBrightnessProfile(e.target.value);
+    hapticService.click();
+    saveState();
+  });
+}
+
+// Burn-In Pixel Protection (Subtle 2-4px micro-shift every 60s)
+let burnInTimer = null;
+let currentPixelShiftX = 0;
+let currentPixelShiftY = 0;
+
+function setupBurnInProtection() {
+  clearInterval(burnInTimer);
+  if (!state.burnInProtection) {
+    if (clockStage) clockStage.style.transform = '';
+    return;
+  }
+
+  burnInTimer = setInterval(() => {
+    forcePixelShift();
+  }, 60000);
+}
+
+function forcePixelShift() {
+  // Shifts within -3px to +3px
+  const shiftX = (Math.floor(Math.random() * 7) - 3);
+  const shiftY = (Math.floor(Math.random() * 7) - 3);
+  currentPixelShiftX = shiftX;
+  currentPixelShiftY = shiftY;
+
+  if (clockStage) {
+    clockStage.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
+  }
+
+  const labBurnInVal = document.getElementById('lab-burnin-val');
+  if (labBurnInVal) {
+    labBurnInVal.textContent = `X:${shiftX > 0 ? '+' + shiftX : shiftX} Y:${shiftY > 0 ? '+' + shiftY : shiftY}`;
+  }
+}
+
+if (toggleBurnIn) {
+  toggleBurnIn.addEventListener('change', (e) => {
+    state.burnInProtection = e.target.checked;
+    hapticService.toggle();
+    saveState();
+    setupBurnInProtection();
+  });
+}
+
+// Ambient Rotating Information Layer (Time, Next Alarm, Battery, Timer)
+let ambientRotationTimer = null;
+let ambientRotationIndex = 0;
+
+function updateAmbientInfoBanner() {
+  clearInterval(ambientRotationTimer);
+  if (!ambientInfoBar) return;
+
+  if (state.ambientInfoLayer === false) {
+    ambientInfoBar.classList.add('hidden');
+    return;
+  }
+
+  ambientInfoBar.classList.remove('hidden');
+
+  const rotateInfo = () => {
+    if (!ambientInfoText) return;
+    const items = [];
+
+    // 1. Current Full Time
+    const time = getFormattedTime();
+    items.push(`🕒 Standard Time: ${time.hours}:${time.minutes} ${time.ampm}`);
+
+    // 2. Next Active Alarm
+    const activeAlarm = (state.alarms || []).find(a => a.enabled);
+    if (activeAlarm) {
+      items.push(`⏰ Next Alarm: ${formatAlarmDisplayTime(activeAlarm.time)} (${activeAlarm.label || 'Alarm'})`);
+    } else {
+      items.push(`⏰ No active alarms scheduled`);
+    }
+
+    // 3. Battery status
+    if (batteryText) {
+      const charging = batteryCorner && batteryCorner.classList.contains('charging');
+      items.push(`🔋 Battery: ${batteryText.textContent} ${charging ? '(On AC Power)' : '(On Battery)'}`);
+    }
+
+    // 4. Timer / Appliance State
+    if (timerRunning) {
+      items.push(`⏳ Timer Running: ${formatTimerSeconds(timerRemainingSeconds)} remaining`);
+    } else if (pomoRunning) {
+      items.push(`🎯 Focus Active: ${pomoPhase === 'work' ? 'Work' : 'Break'} (${formatTimerSeconds(pomoRemaining)})`);
+    } else {
+      items.push(`🖥️ Appliance Mode: 24/7 Nightstand Clock Active`);
+    }
+
+    ambientRotationIndex = (ambientRotationIndex + 1) % items.length;
+    ambientInfoText.textContent = items[ambientRotationIndex];
+  };
+
+  rotateInfo();
+  ambientRotationTimer = setInterval(rotateInfo, 12000);
+}
+
+if (toggleAmbientInfo) {
+  toggleAmbientInfo.addEventListener('change', (e) => {
+    state.ambientInfoLayer = e.target.checked;
+    hapticService.toggle();
+    saveState();
+    updateAmbientInfoBanner();
+  });
+}
+
+// One-Tap Night / Ambient Mode Quick Toggle (Bottom Nav)
+if (btnNightToggle) {
+  btnNightToggle.addEventListener('click', () => {
+    hapticService.toggle();
+    // Cycle through: day -> night (red/amber) -> ultra-dim -> back to day
+    if (state.brightnessProfile === 'day') {
+      applyBrightnessProfile('night');
+      state.theme = 'night-red';
+      applyTheme('night-red');
+      btnNightToggle.classList.add('active');
+    } else if (state.brightnessProfile === 'night') {
+      applyBrightnessProfile('ambient');
+      state.theme = 'night-amber';
+      applyTheme('night-amber');
+      btnNightToggle.classList.add('active');
+    } else {
+      applyBrightnessProfile('day');
+      state.theme = 'dark-charcoal';
+      applyTheme('dark-charcoal');
+      btnNightToggle.classList.remove('active');
+    }
+    if (selectBrightnessProfile) selectBrightnessProfile.value = state.brightnessProfile;
+    saveState();
+  });
+}
+
+// Clock Lab Modal & Hardware Diagnostics
+if (btnClockLab) {
+  btnClockLab.addEventListener('click', () => {
+    hapticService.click();
+    openModal(clockLabBackdrop);
+  });
+}
+
+if (clockLabCloseBtn) {
+  clockLabCloseBtn.addEventListener('click', () => {
+    hapticService.click();
+    closeModal(clockLabBackdrop);
+  });
+}
+
+if (clockLabBackdrop) {
+  clockLabBackdrop.addEventListener('click', (e) => {
+    if (e.target === clockLabBackdrop) {
+      hapticService.click();
+      closeModal(clockLabBackdrop);
+    }
+  });
+}
+
+// Clock Lab Diagnostic Triggers
+const btnLabTestHaptic = document.getElementById('btn-lab-test-haptic');
+const btnLabTestSound = document.getElementById('btn-lab-test-sound');
+const btnLabTriggerAlarm = document.getElementById('btn-lab-trigger-alarm');
+const btnLabCycleFace = document.getElementById('btn-lab-cycle-face');
+const btnForcePixelShift = document.getElementById('btn-force-pixel-shift');
+
+if (btnLabTestHaptic) {
+  btnLabTestHaptic.addEventListener('click', () => {
+    hapticService.heavyClick();
+  });
+}
+
+if (btnLabTestSound) {
+  btnLabTestSound.addEventListener('click', () => {
+    initAudio();
+    playMechanicalFlipSound();
+  });
+}
+
+if (btnLabTriggerAlarm) {
+  btnLabTriggerAlarm.addEventListener('click', () => {
+    closeModal(clockLabBackdrop);
+    triggerAlarm({
+      id: 'test-lab',
+      time: '12:00',
+      label: 'Lab Diagnostic Test Alarm',
+      sound: 'zen-bell'
+    }, 'Lab Test');
+  });
+}
+
+if (btnLabCycleFace) {
+  const faces = ['flip', 'minimal', 'seven-segment', 'huge-typography', 'dot-matrix', 'analog', 'split-flap', 'desk-clock'];
+  btnLabCycleFace.addEventListener('click', () => {
+    hapticService.click();
+    const currentIdx = faces.indexOf(state.clockFace || 'flip');
+    const nextIdx = (currentIdx + 1) % faces.length;
+    state.clockFace = faces[nextIdx];
+    if (appRoot) appRoot.dataset.face = state.clockFace;
+    if (selectClockFace) selectClockFace.value = state.clockFace;
+    saveState();
+    isInitialized = false;
+    updateClock();
+  });
+}
+
+if (btnForcePixelShift) {
+  btnForcePixelShift.addEventListener('click', () => {
+    hapticService.tick();
+    forcePixelShift();
+  });
+}
+
 // Fullscreen
 btnFullscreen.addEventListener('click', () => {
   if (!document.fullscreenElement) {
@@ -1810,9 +2451,22 @@ timerBackdrop.addEventListener('click', (e) => {
 
 btnClock.addEventListener('click', () => {
   hapticService.click();
+  const anyOpen = !settingsBackdrop.classList.contains('hidden') ||
+                  !alarmBackdrop.classList.contains('hidden') ||
+                  !timerBackdrop.classList.contains('hidden') ||
+                  (clockLabBackdrop && !clockLabBackdrop.classList.contains('hidden'));
+
   closeModal(settingsBackdrop);
   closeModal(alarmBackdrop);
   closeModal(timerBackdrop);
+  if (clockLabBackdrop) closeModal(clockLabBackdrop);
+
+  // If no modals were open, toggle minimal Desk Mode (hides navigation controls for clean appliance display)
+  if (!anyOpen) {
+    state.deskMode = !state.deskMode;
+    if (appRoot) appRoot.classList.toggle('desk-mode', state.deskMode);
+    saveState();
+  }
 });
 
 document.addEventListener('keydown', (e) => {
@@ -1950,6 +2604,7 @@ function attachHapticFeedbackDelegation() {
     document.getElementById('settings-sheet'),
     document.getElementById('alarm-sheet'),
     document.getElementById('timer-sheet'),
+    document.getElementById('clock-lab-sheet'),
     document.getElementById('bottom-bar'),
     document.getElementById('alarm-banner')
   ];
