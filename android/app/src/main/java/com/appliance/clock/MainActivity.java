@@ -104,7 +104,24 @@ public class MainActivity extends Activity {
         }
     });
 
-    mWebView.setWebViewClient(new WebViewClient());
+    mWebView.setWebViewClient(new WebViewClient() {
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+
+            view.evaluateJavascript(
+                    "(function() {" +
+                    "return JSON.stringify({" +
+                    "url: location.href," +
+                    "stylesheets: Array.from(document.styleSheets).map(function(s) { return s.href; })," +
+                    "scripts: Array.from(document.scripts).map(function(s) { return s.src; })," +
+                    "body: document.body ? document.body.innerText.substring(0,200) : 'NO BODY'" +
+                    "});" +
+                    "})()",
+                    value -> android.util.Log.d("FlipClockWebView", "PAGE=" + value)
+            );
+        }
+    });
 
     mWebView.loadUrl(
             "file:///android_asset/www/index.html"
