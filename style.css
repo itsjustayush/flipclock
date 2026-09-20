@@ -1,0 +1,1869 @@
+/* ==========================================================================
+   FLIP CLOCK - Core Stylesheet
+   Crafted for high performance on older Android tablet hardware & PWA standalone
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   CSS Variables & Color Theming
+   -------------------------------------------------------------------------- */
+:root {
+  /* Default Theme: Dark Charcoal (Matches Screenshots) */
+  --bg-color: #050505;
+  --card-bg: #161616;
+  --card-top-bg: #181818;
+  --card-bottom-bg: #141414;
+  --card-split-color: #050505;
+  --axis-line-color: rgba(255, 255, 255, 0.04);
+  --text-color: #e5e5e5;
+  --subtext-color: #777777;
+  --accent-color: #3b82f6;
+
+  /* Navigation Bar Colors */
+  --nav-icon-color: #383838;
+  --nav-icon-hover: #777777;
+  --nav-icon-active: #cccccc;
+
+  /* Dimensions & Spacing (Scales with Viewport) */
+  --card-radius: clamp(16px, 3.5vw, 36px);
+  --slit-height: 2px;
+  --flip-duration: 0.55s;
+  --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+
+  /* Clean, standard, highly legible UI interface font for all app chrome, dates, dialogs, badges */
+  --ui-font: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+
+  /* Font settings: Display font applied ONLY to the main clock digits (.digit elements) */
+  --clock-font: 'Bebas Neue', -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  
+  /* Dynamic Landscape Card Sizing */
+  --card-w: clamp(180px, 38vw, 540px);
+  --card-h: clamp(220px, 68vh, 620px);
+  --digit-size: clamp(140px, 46vh, 440px);
+}
+
+/* Typography Presets */
+[data-font="bebas-neue"] {
+  --clock-font: 'Bebas Neue', sans-serif;
+}
+[data-font="oswald"] {
+  --clock-font: 'Oswald', sans-serif;
+}
+[data-font="space-mono"] {
+  --clock-font: 'Space Mono', monospace;
+}
+[data-font="anton"] {
+  --clock-font: 'Anton', sans-serif;
+}
+[data-font="system"] {
+  --clock-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+/* Theme: Pitch Black OLED */
+[data-theme="oled-black"] {
+  --bg-color: #000000;
+  --card-bg: #0d0d0d;
+  --card-top-bg: #101010;
+  --card-bottom-bg: #0a0a0a;
+  --card-split-color: #000000;
+  --axis-line-color: rgba(255, 255, 255, 0.03);
+  --text-color: #ffffff;
+  --subtext-color: #666666;
+  --nav-icon-color: #2b2b2b;
+  --nav-icon-active: #ffffff;
+}
+
+/* Theme: Slate Navy */
+[data-theme="slate-navy"] {
+  --bg-color: #080c14;
+  --card-bg: #121927;
+  --card-top-bg: #151e2f;
+  --card-bottom-bg: #0f1521;
+  --card-split-color: #080c14;
+  --axis-line-color: rgba(255, 255, 255, 0.05);
+  --text-color: #e2e8f0;
+  --subtext-color: #64748b;
+  --nav-icon-color: #334155;
+  --nav-icon-active: #94a3b8;
+}
+
+/* Theme: Retro Amber */
+[data-theme="retro-amber"] {
+  --bg-color: #0a0805;
+  --card-bg: #1c160f;
+  --card-top-bg: #211b13;
+  --card-bottom-bg: #17120c;
+  --card-split-color: #0a0805;
+  --axis-line-color: rgba(255, 170, 51, 0.06);
+  --text-color: #ffaa33;
+  --subtext-color: #b37722;
+  --nav-icon-color: #4a3b29;
+  --nav-icon-active: #ffaa33;
+}
+
+/* Theme: Cyberpunk Neon Matrix */
+[data-theme="cyberpunk"] {
+  --bg-color: #030a05;
+  --card-bg: #0c1c11;
+  --card-top-bg: #0f2215;
+  --card-bottom-bg: #09160d;
+  --card-split-color: #030a05;
+  --axis-line-color: rgba(57, 255, 20, 0.08);
+  --text-color: #39ff14;
+  --subtext-color: #1ea806;
+  --nav-icon-color: #173d22;
+  --nav-icon-active: #39ff14;
+}
+
+/* Theme: Paper White (Light Mode) */
+[data-theme="paper-white"] {
+  --bg-color: #efedea;
+  --card-bg: #e2ded9;
+  --card-top-bg: #eae6e1;
+  --card-bottom-bg: #dad6d1;
+  --card-split-color: #efedea;
+  --axis-line-color: rgba(0, 0, 0, 0.06);
+  --text-color: #1f1e1d;
+  --subtext-color: #7d7a76;
+  --nav-icon-color: #b0aba4;
+  --nav-icon-active: #222222;
+  --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* Theme: Midnight Blue */
+[data-theme="midnight-blue"] {
+  --bg-color: #060a17;
+  --card-bg: #0f182e;
+  --card-top-bg: #131e38;
+  --card-bottom-bg: #0b1222;
+  --card-split-color: #060a17;
+  --axis-line-color: rgba(96, 165, 250, 0.08);
+  --text-color: #93c5fd;
+  --subtext-color: #60a5fa;
+  --nav-icon-color: #1e293b;
+  --nav-icon-active: #93c5fd;
+  --accent-color: #3b82f6;
+}
+
+/* Theme: Forest Green */
+[data-theme="forest-green"] {
+  --bg-color: #040d07;
+  --card-bg: #0b1f13;
+  --card-top-bg: #0e2617;
+  --card-bottom-bg: #08170e;
+  --card-split-color: #040d07;
+  --axis-line-color: rgba(74, 222, 128, 0.08);
+  --text-color: #86efac;
+  --subtext-color: #4ade80;
+  --nav-icon-color: #143521;
+  --nav-icon-active: #86efac;
+  --accent-color: #22c55e;
+}
+
+/* Theme: Ruby Red */
+[data-theme="ruby-red"] {
+  --bg-color: #0e0406;
+  --card-bg: #220b10;
+  --card-top-bg: #290d14;
+  --card-bottom-bg: #1a080c;
+  --card-split-color: #0e0406;
+  --axis-line-color: rgba(248, 113, 113, 0.08);
+  --text-color: #fca5a5;
+  --subtext-color: #f87171;
+  --nav-icon-color: #3b141d;
+  --nav-icon-active: #fca5a5;
+  --accent-color: #ef4444;
+}
+
+
+/* --------------------------------------------------------------------------
+   Global Resets & Tablet Normalization
+   -------------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--ui-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.app-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-color);
+  transition: background-color 0.3s ease;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   Horizontal Mechanical Axle / Hinge Line (Image 1 Feature)
+   -------------------------------------------------------------------------- */
+.hinge-axis-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--axis-line-color);
+  z-index: 1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+/* --------------------------------------------------------------------------
+   Clock Stage & Responsive Landscape Layout
+   -------------------------------------------------------------------------- */
+.clock-stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 2.8vw, 42px);
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   3D Flip Card Architecture & Mechanical Seam Precision
+   -------------------------------------------------------------------------- */
+.flip-card,
+.flip-panel,
+#hours-card,
+#minutes-card,
+#seconds-card {
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+/* Upper and Lower Card Halves (Seamless Horizontal Split) */
+.card-half,
+.top,
+.bottom,
+.top.static,
+.bottom.static,
+.top.flap,
+.bottom.flap,
+#hours-top-static,
+#hours-bottom-static,
+#hours-top-flap,
+#hours-bottom-flap,
+#minutes-top-static,
+#minutes-bottom-static,
+#minutes-top-flap,
+#minutes-bottom-flap,
+#seconds-top-static,
+#seconds-bottom-static,
+#seconds-top-flap,
+#seconds-bottom-flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  box-sizing: border-box;
+  background-color: var(--card-bg);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.card-half.top,
+.top,
+#hours-top-static,
+#hours-top-flap,
+#minutes-top-static,
+#minutes-top-flap,
+#seconds-top-static,
+#seconds-top-flap {
+  top: 0;
+  bottom: auto;
+  border-radius: var(--card-radius) var(--card-radius) 0 0;
+  transform-origin: bottom center;
+  -webkit-transform-origin: bottom center;
+  background-color: var(--card-top-bg);
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.card-half.bottom,
+.bottom,
+#hours-bottom-static,
+#hours-bottom-flap,
+#minutes-bottom-static,
+#minutes-bottom-flap,
+#seconds-bottom-static,
+#seconds-bottom-flap {
+  top: auto;
+  bottom: 0;
+  border-radius: 0 0 var(--card-radius) var(--card-radius);
+  transform-origin: top center;
+  -webkit-transform-origin: top center;
+  background-color: var(--card-bottom-bg);
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Split Line / Slit Groove (Thin realistic horizontal axle slit) */
+.slit-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--card-split-color);
+  opacity: 0.85;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Digit Container & Glyph Alignment (Seamless Center Split)
+   - .top / .card-half.top has overflow: hidden, aligns text to its bottom edge
+   - .bottom / .card-half.bottom has overflow: hidden, aligns text to its top edge
+   - Fixed line-height is strictly equal to full panel height (--card-h)
+   - Zero gap connection at horizontal axle line
+   -------------------------------------------------------------------------- */
+.digit-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: var(--card-h);
+  pointer-events: none;
+  display: block;
+}
+
+/* Top half: top half of digit aligns seamlessly with bottom edge of flap */
+.card-half.top .digit-container,
+.top .digit-container,
+.card-half.top .digit,
+.top .digit,
+.card-half.top .digit-glyph,
+.top .digit-glyph,
+#hours-top-static .digit,
+#hours-top-flap .digit,
+#minutes-top-static .digit,
+#minutes-top-flap .digit,
+#seconds-top-static .digit,
+#seconds-top-flap .digit {
+  top: 0;
+  bottom: auto;
+  margin-top: 0;
+}
+
+/* Bottom half: bottom half of digit aligns seamlessly with top edge of flap */
+.card-half.bottom .digit-container,
+.bottom .digit-container,
+.card-half.bottom .digit,
+.bottom .digit,
+.card-half.bottom .digit-glyph,
+.bottom .digit-glyph,
+#hours-bottom-static .digit,
+#hours-bottom-flap .digit,
+#minutes-bottom-static .digit,
+#minutes-bottom-flap .digit,
+#seconds-bottom-static .digit,
+#seconds-bottom-flap .digit {
+  top: auto;
+  bottom: 0;
+  margin-top: 0;
+}
+
+.digit,
+.digit-glyph {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: block;
+  width: 100%;
+  height: var(--card-h);
+  line-height: var(--card-h);
+  font-family: var(--clock-font);
+  font-size: var(--digit-size);
+  font-weight: 800;
+  color: var(--text-color);
+  letter-spacing: -0.02em;
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* --------------------------------------------------------------------------
+   AM / PM Badge
+   -------------------------------------------------------------------------- */
+.ampm-badge {
+  position: absolute;
+  z-index: 10;
+  font-family: var(--ui-font);
+  font-size: clamp(13px, 2.4vh, 20px);
+  font-weight: 700;
+  color: var(--subtext-color);
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+/* Default: Bottom Left (Matches Image 1) */
+.pos-bottom-left .ampm-badge,
+.ampm-badge.pos-bottom-left,
+.ampm-badge {
+  bottom: clamp(14px, 3vh, 32px);
+  left: clamp(16px, 3.2vw, 36px);
+}
+
+/* Alternate: Top Left (Matches Image 2) */
+.pos-top-left .ampm-badge,
+.ampm-badge.pos-top-left {
+  top: clamp(14px, 3vh, 32px);
+  bottom: auto;
+  left: clamp(16px, 3.2vw, 36px);
+}
+
+.ampm-badge.hidden {
+  display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   3D Flaps & Hardware Accelerated Animations
+   -------------------------------------------------------------------------- */
+.card-half.flap {
+  z-index: 6;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+/* Initial Idle State */
+.card-half.top.flap,
+.top.flap,
+#hours-top-flap,
+#minutes-top-flap,
+#seconds-top-flap {
+  transform-origin: bottom center !important;
+  -webkit-transform-origin: bottom center !important;
+  transform: translate3d(0, 0, 0) rotateX(0deg);
+  -webkit-transform: translate3d(0, 0, 0) rotateX(0deg);
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  box-shadow: inset 0 0 0 0 rgba(0, 0, 0, 0);
+  transition: box-shadow calc(var(--flip-duration) * 0.5) cubic-bezier(0.4, 0.0, 0.7, 0.9);
+}
+
+.card-half.bottom.flap,
+.bottom.flap,
+#hours-bottom-flap,
+#minutes-bottom-flap,
+#seconds-bottom-flap {
+  transform-origin: top center !important;
+  -webkit-transform-origin: top center !important;
+  transform: translate3d(0, 0, 0) rotateX(90deg);
+  -webkit-transform: translate3d(0, 0, 0) rotateX(90deg);
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  visibility: hidden;
+  box-shadow: inset 0 55px 45px -12px rgba(0, 0, 0, 0.88);
+  transition: box-shadow calc(var(--flip-duration) * 0.5) cubic-bezier(0.2, 0.3, 0.4, 1.0);
+}
+
+/* Active Flip Animation with dynamic box-shadow darkening as flaps rotate */
+.flip-card.flipping .card-half.top.flap,
+.flip-card.flipping .top.flap {
+  animation: flipTopKeyframe calc(var(--flip-duration) * 0.5) cubic-bezier(0.4, 0.0, 0.7, 0.9) forwards;
+  -webkit-animation: flipTopKeyframe calc(var(--flip-duration) * 0.5) cubic-bezier(0.4, 0.0, 0.7, 0.9) forwards;
+}
+
+.flip-card.flipping .card-half.bottom.flap,
+.flip-card.flipping .bottom.flap {
+  animation: flipBottomKeyframe calc(var(--flip-duration) * 0.5) cubic-bezier(0.2, 0.3, 0.4, 1.0) calc(var(--flip-duration) * 0.5) forwards;
+  -webkit-animation: flipBottomKeyframe calc(var(--flip-duration) * 0.5) cubic-bezier(0.2, 0.3, 0.4, 1.0) calc(var(--flip-duration) * 0.5) forwards;
+}
+
+@keyframes flipTopKeyframe {
+  0% {
+    visibility: visible;
+    transform: translate3d(0, 0, 0) rotateX(0deg);
+    box-shadow: inset 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+  45% {
+    box-shadow: inset 0 -22px 30px -8px rgba(0, 0, 0, 0.5);
+  }
+  99.9% {
+    visibility: visible;
+    transform: translate3d(0, 0, 0) rotateX(-90deg);
+    box-shadow: inset 0 -55px 45px -12px rgba(0, 0, 0, 0.9);
+  }
+  100% {
+    visibility: hidden;
+    transform: translate3d(0, 0, 0) rotateX(-90deg);
+    box-shadow: inset 0 -55px 45px -12px rgba(0, 0, 0, 0.9);
+  }
+}
+
+@-webkit-keyframes flipTopKeyframe {
+  0% {
+    visibility: visible;
+    -webkit-transform: translate3d(0, 0, 0) rotateX(0deg);
+    box-shadow: inset 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+  45% {
+    box-shadow: inset 0 -22px 30px -8px rgba(0, 0, 0, 0.5);
+  }
+  99.9% {
+    visibility: visible;
+    -webkit-transform: translate3d(0, 0, 0) rotateX(-90deg);
+    box-shadow: inset 0 -55px 45px -12px rgba(0, 0, 0, 0.9);
+  }
+  100% {
+    visibility: hidden;
+    -webkit-transform: translate3d(0, 0, 0) rotateX(-90deg);
+    box-shadow: inset 0 -55px 45px -12px rgba(0, 0, 0, 0.9);
+  }
+}
+
+@keyframes flipBottomKeyframe {
+  0% {
+    visibility: visible;
+    transform: translate3d(0, 0, 0) rotateX(90deg);
+    box-shadow: inset 0 55px 45px -12px rgba(0, 0, 0, 0.9);
+  }
+  55% {
+    box-shadow: inset 0 20px 28px -8px rgba(0, 0, 0, 0.45);
+  }
+  100% {
+    visibility: visible;
+    transform: translate3d(0, 0, 0) rotateX(0deg);
+    box-shadow: inset 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+@-webkit-keyframes flipBottomKeyframe {
+  0% {
+    visibility: visible;
+    -webkit-transform: translate3d(0, 0, 0) rotateX(90deg);
+    box-shadow: inset 0 55px 45px -12px rgba(0, 0, 0, 0.9);
+  }
+  55% {
+    box-shadow: inset 0 20px 28px -8px rgba(0, 0, 0, 0.45);
+  }
+  100% {
+    visibility: visible;
+    -webkit-transform: translate3d(0, 0, 0) rotateX(0deg);
+    box-shadow: inset 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Physical Flap Shadows (Linear Gradient Lighting Simulation on Hinge)
+   -------------------------------------------------------------------------- */
+.flap-shadow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity calc(var(--flip-duration) * 0.5) ease-in-out;
+}
+
+.top-shadow {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.22) 50%, rgba(0, 0, 0, 0.85) 100%);
+}
+
+.bottom-shadow {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.22) 50%, rgba(0, 0, 0, 0.85) 100%);
+}
+
+.flip-card.flipping .card-half.top.flap .top-shadow,
+.flip-card.flipping .top.flap .top-shadow {
+  animation: shadowFadeIn calc(var(--flip-duration) * 0.5) cubic-bezier(0.4, 0.0, 0.7, 0.9) forwards;
+}
+
+.flip-card.flipping .card-half.bottom.flap .bottom-shadow,
+.flip-card.flipping .bottom.flap .bottom-shadow {
+  animation: shadowFadeOut calc(var(--flip-duration) * 0.5) cubic-bezier(0.2, 0.3, 0.4, 1.0) calc(var(--flip-duration) * 0.5) forwards;
+}
+
+@keyframes shadowFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 0.75; }
+}
+
+@keyframes shadowFadeOut {
+  0% { opacity: 0.75; }
+  100% { opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   Seconds Card Sizing (When Enabled)
+   -------------------------------------------------------------------------- */
+.clock-stage.with-seconds {
+  gap: clamp(10px, 1.6vw, 24px);
+}
+
+.clock-stage.with-seconds .flip-card {
+  --card-w: clamp(110px, 28vw, 360px);
+  --card-h: clamp(160px, 58vh, 520px);
+  --digit-size: clamp(80px, 36vh, 320px);
+}
+
+.clock-stage.with-seconds .seconds-card {
+  opacity: 0.88;
+}
+
+/* --------------------------------------------------------------------------
+   Bottom Navigation Bar (Image 1 Replica)
+   -------------------------------------------------------------------------- */
+.bottom-bar {
+  position: absolute;
+  bottom: clamp(10px, 2.5vh, 24px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 3.2vw, 32px);
+  z-index: 20;
+  padding: 6px 16px;
+  background: transparent;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--nav-icon-color);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: color 0.2s ease, transform 0.15s ease;
+}
+
+.nav-btn:hover,
+.nav-btn:focus-visible {
+  color: var(--nav-icon-hover);
+  outline: none;
+}
+
+.nav-btn:active {
+  transform: scale(0.92);
+}
+
+.nav-btn.active {
+  color: var(--nav-icon-active);
+}
+
+/* Clock Active Dot Icon */
+.nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--nav-icon-active);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+}
+
+/* --------------------------------------------------------------------------
+   Nightstand Dimmer Overlay
+   -------------------------------------------------------------------------- */
+.dimmer-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: #000000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 15;
+  transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* When dimmer is active, tapping stage can toggle wake */
+.app-root.dimmed .dimmer-overlay {
+  pointer-events: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Modals & Drawers
+   -------------------------------------------------------------------------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.modal-sheet {
+  width: 90%;
+  max-width: 480px;
+  max-height: 85vh;
+  background-color: #161616;
+  border: 1px solid #2a2a2a;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
+  color: #ededed;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #242424;
+}
+
+.modal-header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f5f5f5;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: #888888;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.modal-close-btn:hover {
+  color: #ffffff;
+  background: #282828;
+}
+
+.modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Settings Controls */
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.setting-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888888;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.setting-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #ececec;
+}
+
+.setting-desc {
+  font-size: 0.8rem;
+  color: #777777;
+  margin-top: 2px;
+}
+
+/* Theme Options Grid */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background-color: #1f1f1f;
+  border: 1px solid #2e2e2e;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #d1d1d1;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+}
+
+.theme-option:hover {
+  border-color: #444;
+  background-color: #262626;
+}
+
+.theme-option.active {
+  border-color: var(--accent-color);
+  background-color: #242c38;
+  color: #ffffff;
+}
+
+.theme-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #2a2a2a;
+  border-radius: 24px;
+  transition: 0.2s;
+}
+
+.slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+input:checked + .slider {
+  background-color: #2563eb;
+}
+
+input:checked + .slider::before {
+  transform: translateX(20px);
+}
+
+/* Custom Select & Range */
+.custom-select {
+  background-color: #222222;
+  border: 1px solid #333333;
+  color: #eeeeee;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.slider-value {
+  font-size: 0.85rem;
+  color: #888888;
+}
+
+.custom-range {
+  width: 100%;
+  height: 6px;
+  background: #2a2a2a;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.custom-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+}
+
+/* Modal Actions */
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #333333;
+  background-color: #202020;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.action-btn:hover {
+  background-color: #2a2a2a;
+}
+
+.action-btn.primary {
+  background-color: #2563eb;
+  border-color: #3b82f6;
+}
+
+.action-btn.primary:hover {
+  background-color: #1d4ed8;
+}
+
+/* --------------------------------------------------------------------------
+   Alarm & Timer Styling
+   -------------------------------------------------------------------------- */
+.alarm-time-picker-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.alarm-time-input {
+  background-color: #202020;
+  border: 1px solid #383838;
+  color: #ffffff;
+  font-size: 2.2rem;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  outline: none;
+  text-align: center;
+}
+
+.stopwatch-display {
+  font-size: 3rem;
+  font-weight: 800;
+  text-align: center;
+  padding: 24px 0;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-controls {
+  display: flex;
+  gap: 12px;
+}
+
+/* --------------------------------------------------------------------------
+   Date Display & Midnight Entrance Animation
+   -------------------------------------------------------------------------- */
+.date-container {
+  position: absolute;
+  bottom: clamp(62px, 9vh, 88px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+  transition: color 0.3s ease;
+}
+
+.date-text {
+  display: inline-block;
+  font-family: var(--ui-font);
+  font-size: clamp(13px, 2.2vh, 19px);
+  font-weight: 500;
+  color: var(--subtext-color);
+  letter-spacing: 0.04em;
+  text-transform: capitalize;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
+/* Subtle slide-in & fade-in entrance animation whenever date updates at midnight */
+.date-text.date-entrance {
+  animation: dateSlideFadeIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  -webkit-animation: dateSlideFadeIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dateSlideFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+    filter: blur(2px);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateY(-2px) scale(1.01);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+@-webkit-keyframes dateSlideFadeIn {
+  0% {
+    opacity: 0;
+    -webkit-transform: translateY(14px) scale(0.96);
+    -webkit-filter: blur(2px);
+  }
+  50% {
+    opacity: 0.85;
+    -webkit-transform: translateY(-2px) scale(1.01);
+    -webkit-filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    -webkit-transform: translateY(0) scale(1);
+    -webkit-filter: blur(0px);
+  }
+}
+
+/* Custom Color Picker Group */
+.custom-color-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  background-color: #1a1a1a;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #282828;
+  margin-top: 8px;
+}
+
+.color-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.color-picker-label {
+  font-size: 0.8rem;
+  color: #c0c0c0;
+}
+
+.color-picker-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.color-picker-input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #444444;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.color-picker-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-picker-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 6px;
+}
+
+.color-picker-input::-moz-color-swatch {
+  border: none;
+  border-radius: 6px;
+}
+
+.reset-custom-btn {
+  font-size: 0.8rem;
+  color: #a3a3a3;
+  background: #202020;
+  border: 1px solid #333;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 10px;
+  width: 100%;
+  font-weight: 500;
+}
+
+.reset-custom-btn:hover {
+  color: #ffffff;
+  border-color: #555;
+  background: #282828;
+}
+
+/* Sound preview button */
+.btn-sound-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #262626;
+  border: 1px solid #383838;
+  color: #d4d4d4;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-weight: 500;
+}
+
+.btn-sound-preview:hover {
+  background-color: #333333;
+  color: #ffffff;
+  border-color: #555;
+}
+
+.btn-sound-preview:active {
+  transform: scale(0.97);
+}
+
+/* Snooze Active Indicator */
+.snooze-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.cancel-snooze-btn {
+  background: none;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #f59e0b;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-snooze-btn:hover {
+  background: rgba(245, 158, 11, 0.2);
+}
+
+/* Notification status badge */
+.notif-status-badge {
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background-color: #262626;
+  color: #a3a3a3;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.notif-status-badge.granted {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* Alarm Ringing Banner & Snooze UI */
+.alarm-banner {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  padding: 14px 20px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 16px 40px rgba(220, 38, 38, 0.5);
+  z-index: 150;
+  animation: alarmPulse 1s infinite alternate;
+  max-width: 90%;
+}
+
+@keyframes alarmPulse {
+  0% { transform: translateX(-50%) scale(1); }
+  100% { transform: translateX(-50%) scale(1.03); }
+}
+
+.alarm-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.alarm-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alarm-snooze-btn {
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.alarm-snooze-btn:hover {
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
+.alarm-dismiss-btn {
+  background-color: #ffffff;
+  color: #b91c1c;
+  font-weight: 800;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.alarm-dismiss-btn:active {
+  transform: scale(0.95);
+}
+
+/* --------------------------------------------------------------------------
+   Dynamic Island Floating Status Bar
+   -------------------------------------------------------------------------- */
+.dynamic-island {
+  position: fixed;
+  top: clamp(10px, 2.2vh, 20px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.2);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  overflow: hidden;
+  max-width: 440px;
+  max-height: 48px;
+  padding: 6px 16px;
+  opacity: 1;
+  pointer-events: auto;
+  transition: max-width 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+              max-height 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+              padding 0.35s ease,
+              opacity 0.3s ease,
+              transform 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease;
+}
+
+.dynamic-island.collapsed {
+  max-width: 0;
+  max-height: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  border-color: transparent;
+  transform: translateX(-50%) scale(0.85) translateY(-8px);
+}
+
+.dynamic-island:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.9), 0 0 8px rgba(255, 255, 255, 0.1);
+}
+
+.dynamic-island:active {
+  transform: translateX(-50%) scale(0.97);
+}
+
+.island-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.island-leading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.island-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.island-title {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #888888;
+  font-weight: 700;
+}
+
+.island-status {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.island-trailing {
+  margin-left: 4px;
+}
+
+.island-pill-action {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #d1d5db;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  transition: background-color 0.15s ease;
+}
+
+.dynamic-island:hover .island-pill-action {
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Multiple Alarms Management UI
+   -------------------------------------------------------------------------- */
+.add-alarm-box {
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.add-alarm-fields {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.add-alarm-time-wrapper {
+  flex-shrink: 0;
+}
+
+.add-alarm-options {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alarms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.alarm-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #1c1c1c;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 10px 14px;
+  border-radius: 10px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.alarm-item.active {
+  border-color: rgba(59, 130, 246, 0.35);
+  background-color: rgba(59, 130, 246, 0.06);
+}
+
+.alarm-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.alarm-item-time {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #f3f4f6;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.alarm-item-label {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.alarm-sound-badge {
+  font-size: 0.68rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #d1d5db;
+}
+
+.alarm-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.alarm-delete-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.alarm-delete-btn:hover {
+  opacity: 1;
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+.alarms-empty-state {
+  text-align: center;
+  padding: 24px 12px;
+  color: #6b7280;
+  font-size: 0.88rem;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.alarms-count-badge {
+  font-size: 0.75rem;
+  background-color: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Auto-Dimming Feature Sub-panel & Status Badges
+   -------------------------------------------------------------------------- */
+.sub-settings {
+  background-color: #191919;
+  border: 1px solid #282828;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 4px;
+  transition: opacity 0.2s ease, max-height 0.3s ease;
+}
+
+.sub-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.sub-setting-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+}
+
+.auto-dim-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #282828;
+  font-size: 0.8rem;
+  color: #93c5fd;
+  font-weight: 500;
+}
+
+.auto-dim-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.auto-dim-indicator.active {
+  background-color: #60a5fa;
+  box-shadow: 0 0 10px rgba(96, 165, 250, 0.8);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+.auto-dim-indicator.day {
+  background-color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 0.6; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* Utility Helper */
+.hidden {
+  display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Battery Status Widget (Battery Status API - Top Right Corner)
+   -------------------------------------------------------------------------- */
+.battery-corner {
+  position: fixed;
+  top: clamp(14px, 2.4vh, 26px);
+  right: clamp(16px, 3vw, 32px);
+  z-index: 85;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.battery-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px;
+  border-radius: 9999px;
+  background: rgba(14, 14, 14, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  color: var(--text-color);
+  transition: all 0.25s ease;
+}
+
+.battery-pill:hover {
+  background: rgba(24, 24, 24, 0.88);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.battery-pill:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Battery Icon Geometry */
+.battery-icon {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.battery-body {
+  width: 22px;
+  height: 11px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  padding: 1px;
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.battery-level-fill {
+  height: 100%;
+  border-radius: 1px;
+  background-color: currentColor;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease;
+}
+
+.battery-cap {
+  width: 2px;
+  height: 5px;
+  background-color: currentColor;
+  border-radius: 0 1.5px 1.5px 0;
+  margin-left: 1px;
+  opacity: 0.9;
+}
+
+.battery-bolt {
+  font-size: 10px;
+  line-height: 1;
+  margin-left: 2px;
+  color: #38bdf8;
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.7));
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  display: inline-block;
+}
+
+.battery-bolt.hidden {
+  display: none !important;
+}
+
+.battery-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  opacity: 0.92;
+}
+
+/* Battery States: Normal, Charging, Low, Critical */
+.battery-corner.charging .battery-pill {
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 10px rgba(56, 189, 248, 0.15);
+}
+.battery-corner.charging .battery-level-fill {
+  background-color: #38bdf8;
+}
+
+/* Low Charge (11% - 20%) - subtle amber */
+.battery-corner.battery-low .battery-pill {
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 10px rgba(245, 158, 11, 0.2);
+}
+.battery-corner.battery-low .battery-level-fill {
+  background-color: #f59e0b;
+}
+
+/* Critical Charge (<= 10%) - soft red with gentle breathing warning pulse */
+.battery-corner.battery-critical .battery-pill {
+  border-color: rgba(239, 68, 68, 0.65);
+  color: #f87171;
+  animation: batteryCriticalPulse 2s infinite ease-in-out;
+}
+.battery-corner.battery-critical .battery-level-fill {
+  background-color: #ef4444;
+}
+
+@keyframes batteryCriticalPulse {
+  0%, 100% {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+  50% {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 12px 3px rgba(239, 68, 68, 0.45);
+  }
+}
+
+/* Battery Details Mechanical Popover */
+.battery-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 215px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.2);
+  color: #e5e5e5;
+  font-size: 0.78rem;
+  z-index: 110;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: popoverFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popoverFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.battery-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.battery-popover-title {
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+}
+.battery-popover-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.battery-popover-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.battery-popover-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+.battery-popover-row strong {
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mechanical Tactile Feedback Button Micro-States */
+button:active,
+.action-btn:active,
+.modal-close-btn:active,
+.theme-option:active,
+.alarm-delete-btn:active,
+.nav-btn:active,
+.btn-sound-preview:active,
+.cancel-snooze-btn:active {
+  transform: scale(0.96);
+  filter: brightness(0.92);
+  transition: transform 0.05s ease, filter 0.05s ease;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Layout: Landscape vs Portrait
+   -------------------------------------------------------------------------- */
+/* Portrait Mode Handling (If tablet is rotated vertically) */
+@media (orientation: portrait) {
+  .hinge-axis-line {
+    display: none;
+  }
+
+  .clock-stage {
+    flex-direction: column;
+    gap: clamp(14px, 2vh, 32px);
+  }
+
+  .date-container {
+    bottom: clamp(72px, 10vh, 104px);
+  }
+
+  .flip-card {
+    --card-w: clamp(220px, 78vw, 480px);
+    --card-h: clamp(180px, 35vh, 360px);
+    --digit-size: clamp(130px, 26vh, 260px);
+  }
+
+  .clock-stage.with-seconds .flip-card {
+    --card-w: clamp(180px, 68vw, 360px);
+    --card-h: clamp(130px, 24vh, 250px);
+    --digit-size: clamp(90px, 17vh, 180px);
+  }
+}

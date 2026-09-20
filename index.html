@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Flip Clock</title>
+  <meta name="description" content="An offline PWA flip clock with physical 3D split-flap cards, customizable color themes, live date display, and snooze alarms.">
+  
+  <!-- PWA & Mobile Web Capabilities -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#000000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Flip Clock">
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  
+  <!-- OpenGraph -->
+  <meta property="og:title" content="Flip Clock">
+  <meta property="og:description" content="An offline PWA flip clock with physical 3D split-flap cards, customizable color themes, live date display, and snooze alarms.">
+  <meta property="og:type" content="website">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/style.css">
+
+  <!-- Google Fonts: Display Fonts for Mechanical Flip Cards & Clean Sans-Serif (Roboto) for UI Text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Oswald:wght@700&family=Roboto:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app" class="app-root">
+    <!-- Dynamic Island Floating Status Bar -->
+    <div class="dynamic-island collapsed" id="dynamic-island" role="status" aria-live="polite" title="Tap to open details">
+      <div class="island-content">
+        <div class="island-leading">
+          <span class="island-icon" id="island-icon">⏱️</span>
+        </div>
+        <div class="island-center">
+          <div class="island-title" id="island-title">Stopwatch</div>
+          <div class="island-status" id="island-status">00:00.0</div>
+        </div>
+        <div class="island-trailing">
+          <span class="island-pill-action" id="island-action">Open</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Battery Status Corner Widget (Battery Status API) -->
+    <div class="battery-corner" id="battery-corner" role="status" aria-label="Battery Status" title="Battery Status: Calculating...">
+      <div class="battery-pill" id="battery-pill">
+        <div class="battery-icon" id="battery-icon">
+          <div class="battery-body">
+            <div class="battery-level-fill" id="battery-level-fill" style="width: 100%;"></div>
+          </div>
+          <div class="battery-cap"></div>
+          <span class="battery-bolt" id="battery-bolt" aria-label="Running on Power" title="Running on Power">⚡</span>
+        </div>
+        <span class="battery-text" id="battery-text">--%</span>
+      </div>
+
+      <!-- Battery Detail Mechanical Popover -->
+      <div class="battery-popover hidden" id="battery-popover" role="tooltip">
+        <div class="battery-popover-header">
+          <span class="battery-popover-title">Power Status</span>
+          <span class="battery-popover-badge" id="battery-state-badge">Connected</span>
+        </div>
+        <div class="battery-popover-info">
+          <div class="battery-popover-row">
+            <span>Charge Level:</span>
+            <strong id="battery-popover-level">--%</strong>
+          </div>
+          <div class="battery-popover-row" id="battery-time-row">
+            <span id="battery-time-label">Status:</span>
+            <strong id="battery-popover-time">Running on Power</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Horizontal Mechanical Axle Line -->
+    <div class="hinge-axis-line" aria-hidden="true"></div>
+
+    <!-- Main Clock Stage -->
+    <main class="clock-stage" id="clock-stage" role="timer" aria-label="Flip Clock">
+      <!-- Hours Flip Unit -->
+      <div class="flip-card flip-panel hours-card" id="hours-card" data-value="1" data-card="hours">
+        <span class="ampm-badge" id="ampm-badge">PM</span>
+        
+        <!-- Static Top Half (Reveals New Top) -->
+        <div class="card-half top static" id="hours-top-static">
+          <div class="digit-container">
+            <span class="digit-glyph digit">1</span>
+          </div>
+          <div class="slit-line"></div>
+        </div>
+
+        <!-- Static Bottom Half (Retains Old Bottom) -->
+        <div class="card-half bottom static" id="hours-bottom-static">
+          <div class="digit-container">
+            <span class="digit-glyph digit">1</span>
+          </div>
+        </div>
+
+        <!-- Dynamic Top Flap (Folds Down) -->
+        <div class="card-half top flap" id="hours-top-flap">
+          <div class="digit-container">
+            <span class="digit-glyph digit">1</span>
+          </div>
+          <div class="slit-line"></div>
+          <div class="flap-shadow top-shadow"></div>
+        </div>
+
+        <!-- Dynamic Bottom Flap (Unfolds Down) -->
+        <div class="card-half bottom flap" id="hours-bottom-flap">
+          <div class="digit-container">
+            <span class="digit-glyph digit">1</span>
+          </div>
+          <div class="flap-shadow bottom-shadow"></div>
+        </div>
+      </div>
+
+      <!-- Minutes Flip Unit -->
+      <div class="flip-card flip-panel minutes-card" id="minutes-card" data-value="54" data-card="minutes">
+        <!-- Static Top Half -->
+        <div class="card-half top static" id="minutes-top-static">
+          <div class="digit-container">
+            <span class="digit-glyph digit">54</span>
+          </div>
+          <div class="slit-line"></div>
+        </div>
+
+        <!-- Static Bottom Half -->
+        <div class="card-half bottom static" id="minutes-bottom-static">
+          <div class="digit-container">
+            <span class="digit-glyph digit">54</span>
+          </div>
+        </div>
+
+        <!-- Dynamic Top Flap -->
+        <div class="card-half top flap" id="minutes-top-flap">
+          <div class="digit-container">
+            <span class="digit-glyph digit">54</span>
+          </div>
+          <div class="slit-line"></div>
+          <div class="flap-shadow top-shadow"></div>
+        </div>
+
+        <!-- Dynamic Bottom Flap -->
+        <div class="card-half bottom flap" id="minutes-bottom-flap">
+          <div class="digit-container">
+            <span class="digit-glyph digit">54</span>
+          </div>
+          <div class="flap-shadow bottom-shadow"></div>
+        </div>
+      </div>
+
+      <!-- Optional Seconds Flip Unit (hidden by default to match screenshot) -->
+      <div class="flip-card flip-panel seconds-card hidden" id="seconds-card" data-value="00" data-card="seconds">
+        <div class="card-half top static" id="seconds-top-static">
+          <div class="digit-container">
+            <span class="digit-glyph digit">00</span>
+          </div>
+          <div class="slit-line"></div>
+        </div>
+        <div class="card-half bottom static" id="seconds-bottom-static">
+          <div class="digit-container">
+            <span class="digit-glyph digit">00</span>
+          </div>
+        </div>
+        <div class="card-half top flap" id="seconds-top-flap">
+          <div class="digit-container">
+            <span class="digit-glyph digit">00</span>
+          </div>
+          <div class="slit-line"></div>
+          <div class="flap-shadow top-shadow"></div>
+        </div>
+        <div class="card-half bottom flap" id="seconds-bottom-flap">
+          <div class="digit-container">
+            <span class="digit-glyph digit">00</span>
+          </div>
+          <div class="flap-shadow bottom-shadow"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Date Display (Below Time) -->
+    <div class="date-container" id="date-container" aria-label="Today's Date">
+      <span class="date-text" id="date-text">Sunday, September 20</span>
+    </div>
+
+    <!-- Bottom Navigation Bar (matches Screenshot) -->
+    <nav class="bottom-bar" id="bottom-bar" aria-label="Clock Controls">
+      <!-- Alarm Button -->
+      <button type="button" class="nav-btn" id="btn-alarm" aria-label="Alarm" title="Alarm">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="13" r="8"></circle>
+          <path d="M12 9v4l2 2"></path>
+          <path d="M5 3 2 6"></path>
+          <path d="m22 6-3-3"></path>
+          <path d="M6.38 18.7 4 21"></path>
+          <path d="M17.64 18.67 20 21"></path>
+        </svg>
+      </button>
+
+      <!-- Stopwatch / Timer Button -->
+      <button type="button" class="nav-btn" id="btn-timer" aria-label="Timer" title="Timer">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="14" r="8"></circle>
+          <line x1="12" y1="6" x2="12" y2="2"></line>
+          <line x1="12" y1="10" x2="12" y2="14"></line>
+          <line x1="10" y1="2" x2="14" y2="2"></line>
+        </svg>
+      </button>
+
+      <!-- Main Clock View Indicator Dot -->
+      <button type="button" class="nav-btn active" id="btn-clock" aria-label="Clock View" title="Clock">
+        <span class="nav-dot"></span>
+      </button>
+
+      <!-- Settings / Menu Button -->
+      <button type="button" class="nav-btn" id="btn-settings" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="7" x2="20" y2="7"></line>
+          <line x1="4" y1="12" x2="20" y2="12"></line>
+          <line x1="4" y1="17" x2="20" y2="17"></line>
+        </svg>
+      </button>
+    </nav>
+
+    <!-- Nightstand Dimmer Overlay -->
+    <div class="dimmer-overlay" id="dimmer-overlay" aria-hidden="true"></div>
+
+    <!-- Active Alarm Banner with Snooze -->
+    <div class="alarm-banner hidden" id="alarm-banner">
+      <div class="alarm-banner-content">
+        <span class="alarm-icon-pulse">🔔</span>
+        <div>
+          <span class="alarm-time-display" id="alarm-banner-time">07:00 AM</span>
+          <span class="alarm-label-display">Alarm Ringing!</span>
+        </div>
+      </div>
+      <div class="alarm-banner-actions">
+        <button type="button" class="alarm-snooze-btn" id="alarm-snooze-btn">Snooze (5m)</button>
+        <button type="button" class="alarm-dismiss-btn" id="alarm-dismiss-btn">Dismiss</button>
+      </div>
+    </div>
+
+    <!-- Settings Drawer / Modal -->
+    <div class="modal-backdrop hidden" id="settings-backdrop">
+      <div class="modal-sheet" id="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <header class="modal-header">
+          <h2 id="settings-title">Clock Settings</h2>
+          <button type="button" class="modal-close-btn" id="settings-close-btn" aria-label="Close Settings">✕</button>
+        </header>
+
+        <div class="modal-body">
+          <!-- Color Themes -->
+          <div class="setting-group">
+            <label class="setting-label">Predefined Themes</label>
+            <div class="theme-grid" id="theme-selector">
+              <button type="button" class="theme-option active" data-theme="dark-charcoal" title="Dark Charcoal (Default)">
+                <span class="theme-swatch" style="background:#161616; border:1px solid #333;"></span>
+                <span class="theme-name">Charcoal</span>
+              </button>
+              <button type="button" class="theme-option" data-theme="oled-black" title="Pitch Black OLED">
+                <span class="theme-swatch" style="background:#000000; border:1px solid #222;"></span>
+                <span class="theme-name">OLED</span>
+              </button>
+              <button type="button" class="theme-option" data-theme="midnight-blue" title="Midnight Blue">
+                <span class="theme-swatch" style="background:#0f182e; border:1px solid #3b82f6;"></span>
+                <span class="theme-name">Midnight</span>
+              </button>
+              <button type="button" class="theme-option" data-theme="forest-green" title="Forest Green">
+                <span class="theme-swatch" style="background:#0b1f13; border:1px solid #22c55e;"></span>
+                <span class="theme-name">Forest</span>
+              </button>
+              <button type="button" class="theme-option" data-theme="ruby-red" title="Ruby Red">
+                <span class="theme-swatch" style="background:#220b10; border:1px solid #ef4444;"></span>
+                <span class="theme-name">Ruby</span>
+              </button>
+              <button type="button" class="theme-option" data-theme="slate-navy" title="Slate Navy">
+                <span class="theme-swatch" style="background:#141c2b; border:1px solid #1e293b;"></span>
+                <span class="theme-name">Slate</span>
+              </button>
+              <button type="button" class="theme-option" data-theme="retro-amber" title="Retro Amber">
+                <span class="theme-swatch" style="background:#1c160f; border:1px solid #ffaa33;"></span>
+                <span class="theme-name">Amber</span>
+              </button>
+              <button type="button" class="theme-option" data-theme="cyberpunk" title="Cyberpunk Matrix">
+                <span class="theme-swatch" style="background:#0c1a10; border:1px solid #39ff14;"></span>
+                <span class="theme-name">Neon</span>
+              </button>
+              <button type="button" class="theme-option" data-theme="paper-white" title="Paper White">
+                <span class="theme-swatch" style="background:#e8e6e2; border:1px solid #ccc;"></span>
+                <span class="theme-name">Paper</span>
+              </button>
+            </div>
+
+            <!-- Custom Theme Colors -->
+            <div style="margin-top: 14px;">
+              <div class="setting-title" style="margin-bottom: 6px;">Custom Color Palette</div>
+              <div class="custom-color-grid">
+                <div class="color-picker-item">
+                  <span class="color-picker-label">Card Surface</span>
+                  <div class="color-picker-input-wrap">
+                    <input type="color" class="color-picker-input" id="picker-card-bg" value="#161616" title="Choose Card Surface Color">
+                  </div>
+                </div>
+                <div class="color-picker-item">
+                  <span class="color-picker-label">Number Text</span>
+                  <div class="color-picker-input-wrap">
+                    <input type="color" class="color-picker-input" id="picker-text-color" value="#e5e5e5" title="Choose Number Text Color">
+                  </div>
+                </div>
+                <div class="color-picker-item">
+                  <span class="color-picker-label">Background</span>
+                  <div class="color-picker-input-wrap">
+                    <input type="color" class="color-picker-input" id="picker-bg-color" value="#050505" title="Choose Background Canvas Color">
+                  </div>
+                </div>
+                <div class="color-picker-item">
+                  <span class="color-picker-label">Center Slit</span>
+                  <div class="color-picker-input-wrap">
+                    <input type="color" class="color-picker-input" id="picker-split-color" value="#050505" title="Choose Slit/Axle Line Color">
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="reset-custom-btn" id="btn-reset-custom-colors">↺ Reset Custom Palette to Preset Theme</button>
+            </div>
+          </div>
+
+          <!-- Date Display Options -->
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Show Date Display</div>
+              <div class="setting-desc">Display day of week, month, and day below time</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-date" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row" id="date-style-row">
+            <div>
+              <div class="setting-title">Date Format</div>
+              <div class="setting-desc">Choose format for the date line</div>
+            </div>
+            <select class="custom-select" id="select-date-style">
+              <option value="full" selected>Full (Sunday, September 20)</option>
+              <option value="short">Short (Sun, Sep 20)</option>
+              <option value="numeric">Numeric (Sun, 20/09/2026)</option>
+            </select>
+          </div>
+
+          <!-- Time Format -->
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">24-Hour Format</div>
+              <div class="setting-desc">Switch between 12h (AM/PM) and 24h military time</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-24h">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- AM/PM Placement -->
+          <div class="setting-row" id="ampm-setting-row">
+            <div>
+              <div class="setting-title">AM/PM Position</div>
+              <div class="setting-desc">Match Image 1 (Bottom) or Image 2 (Top)</div>
+            </div>
+            <select class="custom-select" id="select-ampm-pos">
+              <option value="bottom-left" selected>Bottom Left (Image 1)</option>
+              <option value="top-left">Top Left (Image 2)</option>
+              <option value="hidden">Hidden</option>
+            </select>
+          </div>
+
+          <!-- Leading Zero -->
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Leading Zero on Hours</div>
+              <div class="setting-desc">Display "01" instead of "1"</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-leading-zero">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Show Seconds -->
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Show Seconds Card</div>
+              <div class="setting-desc">Add a 3rd flipping card for seconds</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-seconds">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Flip Sound -->
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Mechanical Flip Sound</div>
+              <div class="setting-desc">Synthesized mechanical split-flap click (offline)</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-sound">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Mechanical Haptic Feedback (navigator.vibrate) -->
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Mechanical Haptics</div>
+              <div class="setting-desc">Tactile click vibrations on settings & alarm controls (navigator.vibrate)</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-haptics" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Keep Screen Awake -->
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Keep Screen Awake</div>
+              <div class="setting-desc">Prevent tablet screen from sleeping (WakeLock)</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-wakelock" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Nightstand Dimmer -->
+          <div class="setting-group">
+            <div class="slider-header">
+              <div class="setting-title">Nightstand Dimmer</div>
+              <span class="slider-value" id="dimmer-value-text">0%</span>
+            </div>
+            <input type="range" class="custom-range" id="input-dimmer" min="0" max="85" value="0" step="5">
+          </div>
+
+          <!-- Auto-Dimming Feature (Uses Device Clock for Gradual Nighttime Dimming) -->
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Auto-Dimming (Night Mode)</div>
+              <div class="setting-desc">Gradually dims screen during pre-set nighttime hours</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-auto-dim">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Auto-Dimming Schedule & Intensity Controls -->
+          <div class="setting-group sub-settings" id="auto-dim-options">
+            <div class="sub-settings-grid">
+              <div class="sub-setting-field">
+                <label for="auto-dim-start" class="field-label">Night Start</label>
+                <input type="time" id="auto-dim-start" class="custom-time-input" value="22:00">
+              </div>
+              <div class="sub-setting-field">
+                <label for="auto-dim-end" class="field-label">Morning End</label>
+                <input type="time" id="auto-dim-end" class="custom-time-input" value="06:30">
+              </div>
+              <div class="sub-setting-field">
+                <label for="auto-dim-level" class="field-label">Night Dim Level (<span id="auto-dim-level-text">70%</span>)</label>
+                <input type="range" class="custom-range" id="auto-dim-level" min="30" max="85" value="70" step="5">
+              </div>
+            </div>
+            <div class="auto-dim-status" id="auto-dim-status">
+              <span class="auto-dim-indicator" id="auto-dim-indicator"></span>
+              <span id="auto-dim-status-text">Inactive</span>
+            </div>
+          </div>
+
+          <!-- Clock Font Selection -->
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Clock Font</div>
+              <div class="setting-desc">Display typography for vintage split-flap cards</div>
+            </div>
+            <select class="custom-select" id="select-clock-font">
+              <option value="bebas-neue" selected>Bebas Neue (Classic Flip-Board)</option>
+              <option value="oswald">Oswald (Refined & Modern)</option>
+              <option value="space-mono">Space Mono (Retro-Tech / Cyberpunk)</option>
+              <option value="anton">Anton (Heavy & Industrial)</option>
+              <option value="system">System Sans-Serif</option>
+            </select>
+          </div>
+
+          <!-- Flip Speed -->
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Flip Speed</div>
+              <div class="setting-desc">Animation duration for older hardware</div>
+            </div>
+            <select class="custom-select" id="select-flip-speed">
+              <option value="0.38s">Fast (0.38s)</option>
+              <option value="0.55s" selected>Standard (0.55s)</option>
+              <option value="0.75s">Relaxed (0.75s)</option>
+            </select>
+          </div>
+
+          <!-- Actions: Fullscreen & PWA Install -->
+          <div class="modal-actions">
+            <button type="button" class="action-btn" id="btn-fullscreen">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+              </svg>
+              <span>Toggle Fullscreen</span>
+            </button>
+
+            <button type="button" class="action-btn primary hidden" id="btn-install-pwa">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Install PWA to Tablet</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alarm Modal (Multiple Alarms Manager) -->
+    <div class="modal-backdrop hidden" id="alarm-backdrop">
+      <div class="modal-sheet" id="alarm-sheet" role="dialog" aria-modal="true" aria-labelledby="alarm-title">
+        <header class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <h2 id="alarm-title">Tablet Alarms</h2>
+          </div>
+          <button type="button" class="modal-close-btn" id="alarm-close-btn" aria-label="Close Alarm">✕</button>
+        </header>
+        <div class="modal-body">
+          <!-- Active Snooze Indicator (if any alarm is snoozed) -->
+          <div class="snooze-indicator hidden" id="snooze-indicator">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span>⏳</span>
+              <span id="snooze-status-text">Snoozed until 07:05 AM</span>
+            </div>
+            <button type="button" class="cancel-snooze-btn" id="cancel-snooze-btn">Cancel Snooze</button>
+          </div>
+
+          <!-- Add New Alarm Form -->
+          <div class="add-alarm-box">
+            <div class="setting-title" style="margin-bottom: 8px;">Add New Alarm</div>
+            <div class="add-alarm-fields">
+              <div class="add-alarm-time-wrapper">
+                <input type="time" class="alarm-time-input" id="new-alarm-time" value="07:00" required>
+              </div>
+              <div class="add-alarm-options">
+                <input type="text" class="custom-input" id="new-alarm-label" placeholder="Alarm Label (e.g. Wake up, Meds)" maxlength="28">
+                <div style="display: flex; gap: 6px; width: 100%;">
+                  <select class="custom-select" id="new-alarm-sound" style="flex: 1;">
+                    <option value="classic-beep" selected>Classic Beep</option>
+                    <option value="zen-bell">Zen Bell</option>
+                    <option value="marimba-chime">Marimba</option>
+                    <option value="mechanical-buzz">Mechanical Buzz</option>
+                  </select>
+                  <button type="button" class="btn-sound-preview" id="btn-preview-sound" title="Test selected sound">
+                    <span>▶ Test</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="add-alarm-actions">
+              <button type="button" class="action-btn primary" id="btn-add-alarm" style="width: 100%; padding: 10px 16px;">
+                <span>＋ Add Alarm Time</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Alarms List -->
+          <div class="setting-group" style="margin-top: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div class="setting-title">Configured Alarms</div>
+              <span class="alarms-count-badge" id="alarms-count-badge">0 active</span>
+            </div>
+            <div class="alarms-list" id="alarms-list">
+              <!-- Dynamically rendered alarms list -->
+            </div>
+          </div>
+
+          <!-- Snooze & Background Notifications -->
+          <div class="alarm-prefs-section" style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">Snooze Duration</div>
+                <div class="setting-desc">Minutes before ringing again</div>
+              </div>
+              <select class="custom-select" id="select-snooze-duration">
+                <option value="5" selected>5 Minutes</option>
+                <option value="9">9 Minutes</option>
+                <option value="10">10 Minutes</option>
+                <option value="15">15 Minutes</option>
+              </select>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <div class="setting-title">Background Alerts</div>
+                <div class="setting-desc">Trigger notification when tablet/app is in background</div>
+                <span class="notif-status-badge" id="notif-status-badge">Notification status: Default</span>
+              </div>
+              <button type="button" class="action-btn" id="btn-request-notif" style="padding: 6px 12px; font-size: 0.8rem;">
+                Enable Alerts
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timer / Stopwatch Modal -->
+    <div class="modal-backdrop hidden" id="timer-backdrop">
+      <div class="modal-sheet" id="timer-sheet" role="dialog" aria-modal="true" aria-labelledby="timer-title">
+        <header class="modal-header">
+          <h2 id="timer-title">Stopwatch & Timer</h2>
+          <button type="button" class="modal-close-btn" id="timer-close-btn" aria-label="Close Timer">✕</button>
+        </header>
+        <div class="modal-body">
+          <div class="stopwatch-display" id="stopwatch-display">00:00.0</div>
+          <div class="timer-controls">
+            <button type="button" class="action-btn primary" id="stopwatch-start-btn">Start</button>
+            <button type="button" class="action-btn" id="stopwatch-reset-btn">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript File -->
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

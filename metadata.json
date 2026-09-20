@@ -1,0 +1,7 @@
+{
+  "name": "Flip Clock",
+  "description": "An offline PWA flip clock with physical 3D split-flap cards, customizable color themes, live date display, and snooze alarms.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
