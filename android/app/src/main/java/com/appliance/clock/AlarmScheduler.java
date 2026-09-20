@@ -10,39 +10,72 @@ public final class AlarmScheduler {
     private AlarmScheduler() {
     }
 
-    public static void scheduleExact(Context context, String alarmId, long triggerAtMillis, String label) {
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        if (alarmManager == null) return;
-
+    private static PendingIntent createPendingIntent(
+            Context context,
+            String alarmId,
+            String label
+    ) {
         Intent intent = new Intent(context, AlarmReceiver.class);
         intent.putExtra("ALARM_ID", alarmId);
         intent.putExtra("ALARM_LABEL", label);
 
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+
+        return PendingIntent.getBroadcast(
                 context,
                 alarmId.hashCode(),
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                flags
         );
+    }
+
+    public static void scheduleExact(
+            Context context,
+            String alarmId,
+            long triggerAtMillis,
+            String label
+    ) {
+        AlarmManager alarmManager =
+                (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+        if (alarmManager == null) {
+            return;
+        }
+
+        PendingIntent pendingIntent =
+                createPendingIntent(context, alarmId, label);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+            alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerAtMillis,
+                    pendingIntent
+            );
         } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+            alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerAtMillis,
+                    pendingIntent
+            );
         }
     }
 
     public static void cancel(Context context, String alarmId) {
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        if (alarmManager == null) return;
+        AlarmManager alarmManager =
+                (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
-        Intent intent = new Intent(context, AlarmReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                context,
-                alarmId.hashCode(),
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
+        if (alarmManager == null) {
+            return;
+        }
+
+        PendingIntent pendingIntent =
+                createPendingIntent(context, alarmId, null);
+
         alarmManager.cancel(pendingIntent);
+        pendingIntent.cancel();
     }
 }
